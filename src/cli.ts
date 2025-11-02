@@ -31,12 +31,13 @@ import {
   backupExistingLayer,
   copyAssets,
   writeBootstrap,
-  writeRulesAndKnowledge,
+  writeDomainFoundations,
   writeConfigEnv,
   writeStartScript,
   writeLogEntry,
   writeMetadata,
   writeAntiDriftScripts,
+  writeLegacyImportManifest,
 } from "./lib/fs-utils.js";
 
 async function readExistingMetadata(metaPath: string): Promise<PersistencyMetadata | undefined> {
@@ -147,23 +148,34 @@ async function run(): Promise<void> {
   await ensureAgentAuth(options.agent, aiCmd);
 
   const spinner = ora("Preparing AI persistency layer...").start();
+  const legacySources: string[] = [];
 
   if (!options.force) {
     const backupPath = await backupExistingLayer(persistencyPath, projectPath);
     if (backupPath) {
       spinner.info(`Existing layer backed up to ${backupPath}`);
+      legacySources.push(path.relative(projectPath, backupPath));
       spinner.start();
     }
   }
 
+  await fs.rm(persistencyPath, { recursive: true, force: true });
   await ensureBaseLayout(persistencyPath);
 
   if (options.prevLayer) {
     try {
       const prev = path.resolve(options.prevLayer);
       await fs.access(prev);
-      await fs.cp(prev, persistencyPath, { recursive: true });
-      spinner.info(`Imported previous layer from ${prev}`);
+      const legacyDir = path.join(
+        persistencyPath,
+        "ai-meta",
+        "legacy",
+        dayjs().format("YYYYMMDD-HHmmss"),
+      );
+      await fs.mkdir(legacyDir, { recursive: true });
+      await fs.cp(prev, legacyDir, { recursive: true });
+      legacySources.push(path.relative(projectPath, legacyDir));
+      spinner.info(`Staged previous layer at ${legacyDir}`);
       spinner.start();
     } catch (error) {
       spinner.warn(
@@ -189,7 +201,7 @@ async function run(): Promise<void> {
     commitsSinceTruth,
   };
 
-  await writeRulesAndKnowledge(options, persistencyPath, options.force);
+  await writeDomainFoundations(options, persistencyPath, options.force);
   await writeBootstrap(
     options,
     persistencyPath,
@@ -209,6 +221,10 @@ async function run(): Promise<void> {
   }
 
   await writeStartScript(persistencyPath, aiCmd, options.force);
+  await writeLegacyImportManifest(
+    persistencyPath,
+    legacySources,
+  );
 
   const metadata: PersistencyMetadata = {
     projectName: options.projectName,
@@ -221,6 +237,9 @@ async function run(): Promise<void> {
     updatedAt: dayjs().toISOString(),
     installMethod: options.installMethod,
     assets: copiedAssets.map((assetPath) => path.relative(projectPath, assetPath)),
+    legacySources: legacySources.length
+      ? legacySources
+      : undefined,
     freshness: metrics,
   };
 
@@ -229,6 +248,12 @@ async function run(): Promise<void> {
     persistencyPath,
     `Refreshed by ai-persistency-layer on ${truthBranch} (commit ${snapshot.commit.slice(0, 7)})`,
   );
+  if (legacySources.length) {
+    await writeLogEntry(
+      persistencyPath,
+      `Legacy sources to reconcile: ${legacySources.join(", ")}`,
+    );
+  }
 
   spinner.succeed("AI persistency layer ready.");
 

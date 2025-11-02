@@ -1,0 +1,22 @@
+# Technical Knowledge Base
+
+## Scope
+
+- Architecture views, module boundaries, and integration contracts for **{{projectName}}**.
+- Operational characteristics: deployment topologies, SLAs, observability signals.
+- Constraints that influence implementation choices (tech debt, performance budgets, compliance).
+
+## Expectations
+
+1. Every code change must reference the relevant section in this directory.
+2. Keep diagrams and dependency graphs close to the source; update or cross-link when components evolve.
+3. Surface breaking changes quickly so functional owners can evaluate downstream impact.
+
+## Recommended Structure
+
+- `technical/index.mdc` → architecture map with links to deep dives.
+- `technical/services/` → service/API docs, data schemas, messaging contracts.
+- `technical/infrastructure/` → environments, pipelines, platform integrations.
+- `technical/operations/` → runbooks, SLO/SLA definitions, alert strategies.
+
+> Guidance for agents: when planning or implementing code, cite the section in this directory that authorizes the change and record any deviations.

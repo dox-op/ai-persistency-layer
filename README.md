@@ -9,7 +9,7 @@ The tool mirrors the behaviour of the original `init-persistency-layer.sh` scrip
 - Interactive prompts via Inquirer or fully headless operation with `--non-interactive`.
 - Detects, installs, or updates Codex, Claude, or Gemini CLIs using `execa`.
 - Authenticates by checking standard environment variables and credential files (see “Authentication Requirements”).
-- Generates deterministic `.mdc` knowledge bases, rules, and bootstrap content.
+- Generates deterministic `.mdc` domain foundations (functional, technical, AI-meta) and bootstrap content.
 - Creates `ai-start.sh`, `ai-config.env`, `_bootstrap.log`, and anti-drift scripts.
 - Captures a Git snapshot for the chosen truth branch and records freshness metrics.
 
@@ -129,4 +129,4 @@ This tool is not a silver bullet for AI-agent adoption; treat the suggestions be
 
 ## Start Script
 
-`ai-start.sh` is created (or updated) to export helpful environment variables and exec the selected AI CLI, ensuring consistent sessions.
+`ai-start.sh` exports the tri-domain paths (`PROJECT_PERSISTENCY_FUNCTIONAL`, `PROJECT_PERSISTENCY_TECHNICAL`, `PROJECT_PERSISTENCY_AI_META`) and then execs the selected AI CLI, ensuring sessions always load the correct context.

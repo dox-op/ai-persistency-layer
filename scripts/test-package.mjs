@@ -18,8 +18,10 @@ async function fileExists(filePath) {
 async function ensureDistTemplates() {
   const requiredFiles = [
     "dist/lib/templates/bootstrap.mdc",
-    "dist/lib/templates/rules/core.mdc",
-    "dist/lib/templates/knowledge/foundation.mdc",
+    "dist/lib/templates/functional/foundation.mdc",
+    "dist/lib/templates/technical/foundation.mdc",
+    "dist/lib/templates/ai-meta/foundation.mdc",
+    "dist/lib/templates/ai-meta/legacy-import.mdc",
     "dist/lib/templates/anti-drift/check-stale.ts.txt",
     "dist/lib/templates/anti-drift/refresh-layer.ts.txt"
   ];
@@ -40,6 +42,7 @@ async function ensureCliRuns() {
   const tmpDir = await mkdtemp(path.join(os.tmpdir(), "apl-test-"));
   try {
     await run("git init", { cwd: tmpDir });
+    await run("git branch -M main", { cwd: tmpDir });
     await run("git config user.email tester@example.com", { cwd: tmpDir });
     await run("git config user.name Test User", { cwd: tmpDir });
     await run("git commit --allow-empty -m initial", { cwd: tmpDir });
@@ -78,10 +81,12 @@ async function ensureCliRuns() {
     });
 
     const expectedOutputs = [
-      path.join(tmpDir, "ai", "rules", "core.mdc"),
-      path.join(tmpDir, "ai", "knowledge", "foundation.mdc"),
-      path.join(tmpDir, "ai", "ai-bootstrap.mdc"),
-      path.join(tmpDir, "ai", "snapshots")
+      path.join(tmpDir, "ai", "functional", "foundation.mdc"),
+      path.join(tmpDir, "ai", "technical", "foundation.mdc"),
+      path.join(tmpDir, "ai", "ai-meta", "foundation.mdc"),
+      path.join(tmpDir, "ai", "ai-meta", "legacy-import.mdc"),
+      path.join(tmpDir, "ai", "technical", "snapshots"),
+      path.join(tmpDir, "ai", "ai-bootstrap.mdc")
     ];
 
     for (const file of expectedOutputs) {

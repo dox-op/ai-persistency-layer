@@ -1,0 +1,22 @@
+# AI Meta Playbook
+
+## Purpose
+
+- Coordinate agent workflows for **{{projectName}}**.
+- Define prompts, guardrails, and escalation paths shared by all contributors.
+- Track session hygiene: how the persistency layer must be updated after each loop.
+
+## Expectations
+
+1. Every AI session starts via `ai-start.sh` so the environment is deterministic.
+2. Agents must log new knowledge in `functional/` or `technical/` as appropriate—not here.
+3. Record prompt archetypes, command recipes, and safe defaults for `{{agent}}`.
+
+## Recommended Structure
+
+- `ai-meta/index.mdc` → overview of agent roles, tooling, escalation ladder.
+- `ai-meta/prompts/` → reusable prompt templates and modifiers.
+- `ai-meta/operations.mdc` → process checklist, Definition of Done, anti-drift cadence.
+- `ai-meta/legacy-import.mdc` → automatically generated file capturing pre-existing layer material for migration.
+
+> Guidance for agents: before executing tasks, review `ai-meta/legacy-import.mdc` (if present) and reconcile legacy conventions with this playbook. All new knowledge must respect the three-domain separation.

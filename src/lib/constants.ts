@@ -3,7 +3,7 @@ export const DEFAULT_LOG_FILE = "_bootstrap.log";
 export const DEFAULT_BOOTSTRAP_FILE = "ai-bootstrap.mdc";
 export const DEFAULT_CONFIG_FILE = "ai-config.env";
 export const DEFAULT_START_SCRIPT = "ai-start.sh";
-export const DEFAULT_SNAPSHOT_DIR = "snapshots";
+export const DEFAULT_SNAPSHOT_DIR = "technical/snapshots";
 export const DEFAULT_ANTI_DRIFT_SLO_DAYS = 7;
 export const DEFAULT_ANTI_DRIFT_SLO_COMMITS = 200;
 
@@ -30,6 +30,7 @@ export interface PersistencyMetadata {
   updatedAt: string;
   installMethod?: string;
   assets?: string[];
+  legacySources?: string[];
   freshness?: {
     daysSinceUpdate: number;
     commitsSinceTruth: number;

@@ -73,7 +73,12 @@ export async function copyAssets(
     const absolute = path.resolve(asset);
     try {
       await fs.access(absolute);
-      const target = path.join(persistencyPath, "assets", path.basename(asset));
+      const target = path.join(
+        persistencyPath,
+        "ai-meta",
+        "assets",
+        path.basename(asset),
+      );
       await fs.mkdir(path.dirname(target), { recursive: true });
       await fs.cp(absolute, target, { recursive: true });
       copied.push(target);
@@ -110,35 +115,61 @@ export async function writeBootstrap(
   await safeWriteFile(filePath, content, force);
 }
 
-export async function writeRulesAndKnowledge(
+export async function writeDomainFoundations(
   options: ResolvedOptions,
   persistencyPath: string,
   force: boolean,
 ): Promise<void> {
-  const rulesTemplate = await readTemplate(path.join("rules", "core.mdc"));
-  const knowledgeTemplate = await readTemplate(
-    path.join("knowledge", "foundation.mdc"),
+  const functionalTemplate = await readTemplate(
+    path.join("functional", "foundation.mdc"),
+  );
+  const technicalTemplate = await readTemplate(
+    path.join("technical", "foundation.mdc"),
+  );
+  const aiMetaTemplate = await readTemplate(
+    path.join("ai-meta", "foundation.mdc"),
   );
 
-  const enrichedRules = rulesTemplate.replace(
+  const functional = functionalTemplate.replace(
     /{{projectName}}/g,
     options.projectName,
   );
-
-  const enrichedKnowledge = knowledgeTemplate
+  const technical = technicalTemplate.replace(
+    /{{projectName}}/g,
+    options.projectName,
+  );
+  const aiMeta = aiMetaTemplate
     .replace(/{{projectName}}/g, options.projectName)
     .replace(/{{agent}}/g, options.agent);
 
   await safeWriteFile(
-    path.join(persistencyPath, "rules", "core.mdc"),
-    enrichedRules,
+    path.join(persistencyPath, "functional", "foundation.mdc"),
+    functional,
     force,
   );
   await safeWriteFile(
-    path.join(persistencyPath, "knowledge", "foundation.mdc"),
-    enrichedKnowledge,
+    path.join(persistencyPath, "technical", "foundation.mdc"),
+    technical,
     force,
   );
+  await safeWriteFile(
+    path.join(persistencyPath, "ai-meta", "foundation.mdc"),
+    aiMeta,
+    force,
+  );
+}
+
+export async function writeLegacyImportManifest(
+  persistencyPath: string,
+  sources: string[],
+): Promise<void> {
+  const manifestPath = path.join(persistencyPath, "ai-meta", "legacy-import.mdc");
+  const template = await readTemplate(path.join("ai-meta", "legacy-import.mdc"));
+  const list = (sources.length
+    ? sources.map((src) => `- ${src}`).join("\n")
+    : "- _(none detected)_: this is a fresh layer.");
+  const content = template.replace("{{sourcesList}}", list);
+  await safeWriteFile(manifestPath, content, true);
 }
 
 export async function writeConfigEnv(
@@ -147,6 +178,12 @@ export async function writeConfigEnv(
   force: boolean,
   aiCmd: string,
 ): Promise<void> {
+  const rel = (target: string) =>
+    path.relative(options.projectPath, target) || ".";
+  const functionalDir = path.join(persistencyPath, "functional");
+  const technicalDir = path.join(persistencyPath, "technical");
+  const aiMetaDir = path.join(persistencyPath, "ai-meta");
+
   const lines = [
     `# AI Persistency Layer configuration`,
     `PROJECT_NAME=${options.projectName}`,
@@ -154,6 +191,9 @@ export async function writeConfigEnv(
     `PERSISTENCY_DIR=${persistencyPath}`,
     `AI_AGENT=${options.agent}`,
     `AI_CMD=${aiCmd}`,
+    `PERSISTENCY_FUNCTIONAL=${rel(functionalDir)}`,
+    `PERSISTENCY_TECHNICAL=${rel(technicalDir)}`,
+    `PERSISTENCY_AI_META=${rel(aiMetaDir)}`,
   ];
   if (options.defaultModel) {
     lines.push(`AI_DEFAULT_MODEL=${options.defaultModel}`);
@@ -175,13 +215,14 @@ export async function writeStartScript(
     "#!/usr/bin/env bash",
     "set -euo pipefail",
     "",
-    'SCRIPT_DIR=\"$(cd \"$(dirname \"${BASH_SOURCE[0]}\")\" && pwd)\"',
-    "export PROJECT_PERSISTENCY_DIR=\"$SCRIPT_DIR\"",
-    "export PROJECT_PERSISTENCY_RULES=\"$SCRIPT_DIR/rules\"",
-    "export PROJECT_PERSISTENCY_KNOWLEDGE=\"$SCRIPT_DIR/knowledge\"",
-    "export PROJECT_PERSISTENCY_ASSETS=\"$SCRIPT_DIR/assets\"",
+    'SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"',
+    'export PROJECT_PERSISTENCY_DIR="$SCRIPT_DIR"',
+    'export PROJECT_PERSISTENCY_FUNCTIONAL="$SCRIPT_DIR/functional"',
+    'export PROJECT_PERSISTENCY_TECHNICAL="$SCRIPT_DIR/technical"',
+    'export PROJECT_PERSISTENCY_AI_META="$SCRIPT_DIR/ai-meta"',
+    'export PROJECT_PERSISTENCY_ASSETS="$SCRIPT_DIR/ai-meta/assets"',
     "",
-    `exec ${aiCmd} \"$@\"`,
+    `exec ${aiCmd} "$@"`,
     "",
   ].join("\n");
 
@@ -212,13 +253,20 @@ export async function writeMetadata(
 export async function ensureBaseLayout(persistencyPath: string): Promise<void> {
   await Promise.all([
     fs.mkdir(persistencyPath, { recursive: true }),
-    fs.mkdir(path.join(persistencyPath, "rules"), { recursive: true }),
-    fs.mkdir(path.join(persistencyPath, "knowledge"), { recursive: true }),
-    fs.mkdir(path.join(persistencyPath, "agents"), { recursive: true }),
-    fs.mkdir(path.join(persistencyPath, "assets"), { recursive: true }),
-    fs.mkdir(path.join(persistencyPath, DEFAULT_SNAPSHOT_DIR), {
+    fs.mkdir(path.join(persistencyPath, "functional"), { recursive: true }),
+    fs.mkdir(path.join(persistencyPath, "technical"), { recursive: true }),
+    fs.mkdir(path.join(persistencyPath, "ai-meta"), { recursive: true }),
+    fs.mkdir(path.join(persistencyPath, "ai-meta", "legacy"), {
       recursive: true,
     }),
+    fs.mkdir(
+      path.join(persistencyPath, "ai-meta", "assets"),
+      { recursive: true },
+    ),
+    fs.mkdir(
+      path.join(persistencyPath, DEFAULT_SNAPSHOT_DIR),
+      { recursive: true },
+    ),
   ]);
 }
 

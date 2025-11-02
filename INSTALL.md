@@ -54,7 +54,7 @@ Use `--non-interactive` for automation and `--install-method` to control CLI ins
 
 ## 5. Verifying the Setup
 
-1. Check that the `ai/` directory (or custom `--persistency-dir`) contains generated `.mdc` files.
+1. Check that the `ai/` directory (or custom `--persistency-dir`) now contains the three domain folders: `functional/`, `technical/`, `ai-meta/`.
 2. Ensure `ai-start.sh` is executable: `./ai/ai-start.sh --help`.
 3. Run `scripts/ai/check-stale.ts` (if generated) to confirm freshness scripts work.
 
