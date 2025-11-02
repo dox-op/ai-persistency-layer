@@ -1,6 +1,6 @@
 {
   "name": "@dox-op/ai-persistency-layer",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "Idempotently bootstrap or refresh an AI Persistency Layer for software projects.",
   "type": "module",
   "bin": {
@@ -13,7 +13,6 @@
     "test:package": "node ./scripts/test-package.mjs",
     "dev": "tsx src/cli.ts",
     "prepublish": "pnpm build && pnpm run test:package",
-    "publish": "pnpm publish --access public",
     "prepack": "pnpm build"
   },
   "keywords": [
