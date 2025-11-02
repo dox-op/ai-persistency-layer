@@ -1,6 +1,6 @@
 {
   "name": "@vez/init-persistency-layer",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Initialize or refresh an AI Persistency Layer for software projects.",
   "type": "module",
   "bin": {
