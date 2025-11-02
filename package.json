@@ -12,7 +12,7 @@
     "copy-templates": "node ./scripts/copy-templates.mjs",
     "test:package": "node ./scripts/test-package.mjs",
     "dev": "tsx src/cli.ts",
-    "prepublish": "pnpm build",
+    "prepublish": "pnpm build && pnpm run test:package",
     "publish": "pnpm publish --access public",
     "prepack": "pnpm build"
   },
