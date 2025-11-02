@@ -8,7 +8,7 @@ The tool mirrors the behaviour of the original `init-persistency-layer.sh` scrip
 - Validates execution inside a Git repository (exit code `2` otherwise).
 - Interactive prompts via Inquirer or fully headless operation with `--non-interactive`.
 - Detects, installs, or updates Codex, Claude, or Gemini CLIs using `execa`.
-- Authenticates by checking standard environment variables and credential files.
+- Authenticates by checking standard environment variables and credential files (see “Authentication Requirements”).
 - Generates deterministic `.mdc` knowledge bases, rules, and bootstrap content.
 - Creates `ai-start.sh`, `ai-config.env`, `_bootstrap.log`, and anti-drift scripts.
 - Captures a Git snapshot for the chosen truth branch and records freshness metrics.
@@ -61,6 +61,19 @@ init-persistency-layer [options]
 | `3` | Agent CLI missing |
 | `4` | Authentication missing |
 | `5` | Invalid arguments |
+
+## Authentication Requirements
+
+The CLI validates that the selected AI agent already has credentials configured.  
+Set the appropriate environment variable (or equivalent config file) before running:
+
+| Agent | Environment variables checked | Alternative credentials |
+| ----- | ----------------------------- | ----------------------- |
+| Codex | `CODEX_API_KEY`, `OPENAI_API_KEY` | `~/.config/codex/credentials`, `~/.codex/credentials` |
+| Claude | `ANTHROPIC_API_KEY` | `~/.config/claude/credentials`, `~/.claude/credentials` |
+| Gemini | `GOOGLE_API_KEY`, `GEMINI_API_KEY` | `~/.config/gemini/credentials`, `~/.gemini/credentials` |
+
+If none of the variables exist and no credential file is found, the CLI stops with exit code `4` so you can configure authentication safely.
 
 ## Development
 
