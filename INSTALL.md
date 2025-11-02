@@ -1,6 +1,6 @@
 # Installation & Setup
 
-This guide explains how to install and configure `@vez/init-persistency-layer` and the underlying AI agent CLIs.
+This guide explains how to install and configure `@dox-op/ai-persistency-layer` and the underlying AI agent CLIs.
 
 ## 1. Prerequisites
 
@@ -41,14 +41,14 @@ To link the CLI locally:
 pnpm link --global
 ```
 
-This exposes the command as `init-persistency-layer` in your shell.
+This exposes the command as `ai-persistency-layer` in your shell.
 
 ## 4. Running the CLI
 
 From the root of your project repository:
 
 ```bash
-init-persistency-layer --agent claude --write-config --yes
+ai-persistency-layer --agent claude --write-config --yes
 ```
 
 Use `--non-interactive` for automation and `--install-method` to control CLI installation (`pnpm`, `npm`, `pipx`, `brew`, or `skip`).

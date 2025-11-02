@@ -37,7 +37,7 @@ import {
   writeLogEntry,
   writeMetadata,
   writeAntiDriftScripts,
-} from "./lib/fs-utils.ts";
+} from "./lib/fs-utils.js";
 
 async function readExistingMetadata(metaPath: string): Promise<PersistencyMetadata | undefined> {
   try {
@@ -49,7 +49,7 @@ async function readExistingMetadata(metaPath: string): Promise<PersistencyMetada
 }
 
 function buildProgram(): Command {
-  const program = new Command("init-persistency-layer");
+  const program = new Command("ai-persistency-layer");
   program
     .description("Bootstrap or refresh an AI persistency layer inside a Git repository.")
     .option("--project-name <string>", "Project name.")
@@ -95,7 +95,8 @@ async function run(): Promise<void> {
   const program = buildProgram();
   const parsed = program.parse(process.argv);
 
-  const flags = {
+  const rawOpts = parsed.opts<CliFlags>();
+  const defaults: CliFlags = {
     persistencyDir: DEFAULT_PERSISTENCY_DIR,
     assets: [] as string[],
     writeConfig: false,
@@ -103,7 +104,10 @@ async function run(): Promise<void> {
     yes: false,
     force: false,
     startSession: false,
-    ...parsed.opts<CliFlags>(),
+  };
+  const flags: CliFlags = {
+    ...defaults,
+    ...rawOpts,
   };
   const options = await promptForMissingOptions({
     ...flags,
@@ -220,7 +224,7 @@ async function run(): Promise<void> {
   await writeMetadata(persistencyPath, metadata);
   await writeLogEntry(
     persistencyPath,
-    `Refreshed by init-persistency-layer on ${truthBranch} (commit ${snapshot.commit.slice(0, 7)})`,
+    `Refreshed by ai-persistency-layer on ${truthBranch} (commit ${snapshot.commit.slice(0, 7)})`,
   );
 
   spinner.succeed("AI persistency layer ready.");

@@ -1,7 +1,7 @@
-# @vez/init-persistency-layer
+# @dox-op/ai-persistency-layer
 
 Bootstrap or refresh an AI Persistency Layer inside an existing Git repository.  
-The tool mirrors the behaviour of the original `init-persistency-layer.sh` script while upgrading it to a TypeScript/ESM CLI.
+The tool mirrors the behaviour of the original `init-persistency-layer.sh` script while upgrading it to an idempotent TypeScript/ESM CLI.
 
 ## Features
 
@@ -23,13 +23,13 @@ npm publish --access public
 Consumers can then run:
 
 ```bash
-npx @vez/init-persistency-layer --agent claude --write-config --yes
+npx @dox-op/ai-persistency-layer --agent claude --write-config --yes
 ```
 
 ## Usage
 
 ```bash
-init-persistency-layer [options]
+ai-persistency-layer [options]
 ```
 
 | Option | Description |

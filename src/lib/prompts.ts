@@ -1,4 +1,4 @@
-import inquirer from "inquirer";
+import inquirer, { type QuestionCollection } from "inquirer";
 import path from "node:path";
 import { SUPPORTED_AGENTS, type SupportedAgent } from "./constants.js";
 import type { CliFlags, ResolvedOptions } from "./types.js";
@@ -26,7 +26,7 @@ export async function promptForMissingOptions(flags: CliFlags): Promise<Resolved
   }
 
   const cwd = process.cwd();
-  const questions: inquirer.QuestionCollection = [
+  const questions: QuestionCollection = [
     {
       name: "projectName",
       type: "input",

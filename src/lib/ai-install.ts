@@ -23,8 +23,8 @@ const INSTALL_TARGETS: Record<
   }
 > = {
   codex: {
-    npm: "@vez/codex-cli",
-    pnpm: "@vez/codex-cli",
+    npm: "@dox-op/codex-cli",
+    pnpm: "@dox-op/codex-cli",
     pipx: "codex-cli",
     brew: "codex-cli",
   },
