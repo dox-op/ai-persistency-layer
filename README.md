@@ -15,16 +15,16 @@ The tool mirrors the behaviour of the original `init-persistency-layer.sh` scrip
 
 ## Installation
 
-```bash
-pnpm build
-npm publish --access public
-```
-
-Consumers can then run:
-
-```bash
-npx @dox-op/ai-persistency-layer --agent claude --write-config --yes
-```
+- Run without installing:  
+  ```bash
+  npx @dox-op/ai-persistency-layer --agent claude --write-config --yes
+  ```
+- Install globally (optional):  
+  ```bash
+  npm install -g @dox-op/ai-persistency-layer
+  # then
+  ai-persistency-layer --agent claude --write-config --yes
+  ```
 
 ## Usage
 
@@ -75,7 +75,7 @@ Set the appropriate environment variable (or equivalent config file) before runn
 
 If none of the variables exist and no credential file is found, the CLI stops with exit code `4` so you can configure authentication safely.
 
-## Development
+## Local Development (optional)
 
 ```bash
 pnpm install
@@ -89,6 +89,25 @@ When `--write-config` is supplied, the CLI generates:
 
 - `scripts/ai/check-stale.ts` – validates freshness targets (7 days / 200 commits).
 - `scripts/ai/refresh-layer.ts` – re-runs the bootstrap with `--yes`.
+
+## Persistency Lifecycle
+
+`ai-persistency-layer` sets up or refreshes the baseline; keeping it current requires a continuous workflow:
+
+1. **Functional loop (BA/PO):** Use the generated layer as shared context for AI copilots or agents when preparing new tasks for the development team.
+2. **Delivery loop (dev team):** Implement features and update the persistency layer as part of the Definition of Done, feeding new insights back into the `.mdc` files.
+3. **Review loop (BA/PO):** Validate the updated layer, then start the next iteration by generating new tasks with the refreshed knowledge.
+
+The CLI does not replace these feedback loops—it supplies the scaffolding that downstream processes must keep in sync.
+
+### Handling Drift and Scale
+
+This tool is not a silver bullet for AI-agent adoption; treat the suggestions below as starting points to tailor to your team:
+
+- Track layer revisions with Git alongside application code.
+- Split content by environment or domain to stay within context limits.
+- Consider training dedicated LLMs or fine-tuned embeddings on the persistency layer so agents can reference large documents without re-ingesting every file.
+- Schedule regular refreshes (automated or manual) to prevent the layer from diverging from the truth branch.
 
 ## Logging & Metadata
 

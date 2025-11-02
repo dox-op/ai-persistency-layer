@@ -28,20 +28,19 @@ Example (Codex):
 export OPENAI_API_KEY="sk-your-key"
 ```
 
-## 3. Install Dependencies
+## 3. Install the CLI
 
-```bash
-pnpm install
-pnpm build
-```
+Choose one of the following approaches:
 
-To link the CLI locally:
-
-```bash
-pnpm link --global
-```
-
-This exposes the command as `ai-persistency-layer` in your shell.
+- **Run on demand (no install):**
+  ```bash
+  npx @dox-op/ai-persistency-layer --agent claude --write-config --yes
+  ```
+- **Install globally:**
+  ```bash
+  npm install -g @dox-op/ai-persistency-layer
+  ai-persistency-layer --agent claude --write-config --yes
+  ```
 
 ## 4. Running the CLI
 
@@ -59,13 +58,6 @@ Use `--non-interactive` for automation and `--install-method` to control CLI ins
 2. Ensure `ai-start.sh` is executable: `./ai/ai-start.sh --help`.
 3. Run `scripts/ai/check-stale.ts` (if generated) to confirm freshness scripts work.
 
-## 6. Publishing (summary)
+## 6. Need to customize?
 
-See the README for full publishing instructions. At a glance:
-
-```bash
-pnpm build
-npm publish --access public
-```
-
-Remember to bump the version in `package.json` before each publish.
+If you plan to modify the CLI itself, clone the repository, run `pnpm install`, and use `pnpm dev` / `pnpm build`. For everyday usage, installing from npm (as shown above) is sufficient.
