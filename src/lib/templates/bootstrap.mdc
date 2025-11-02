@@ -1,0 +1,47 @@
+---
+project: {{projectName}}
+agent: {{agent}}
+truth_branch: {{truthBranch}}
+snapshot: {{snapshotPath}}
+default_model: {{defaultModel}}
+last_refresh_days: {{daysSinceUpdate}}
+commits_since_truth: {{commitsSinceTruth}}
+---
+
+# AI Persistency Layer Bootstrap
+
+Welcome to the AI persistency layer for **{{projectName}}**.
+
+This bootstrap describes how to interact with the repository using the selected AI agent CLI.
+
+## Purpose
+
+1. Maintain functional, technical, and AI meta knowledge in dedicated `.mdc` files.
+2. Guarantee recursive enrichment: every new learning loop must update the layer.
+3. Provide deterministic regeneration to avoid drift across refreshes.
+
+## Operating Protocol
+
+- Always load this directory when starting an AI session.
+- Observe the division between `knowledge/`, `rules/`, and `agents/`.
+- Keep assets in `assets/` for raw references (CSV, Confluence exports, diagrams, etc.).
+- Refresh the layer when freshness SLO is violated ({{daysSinceUpdate}} days or {{commitsSinceTruth}} commits since truth branch snapshot).
+
+## Workflow
+
+1. Use `ai-start.sh` to spawn the agent (`{{agent}}`).
+2. During exploration, document new findings in the appropriate `.mdc`.
+3. When features are delivered, regenerate the layer to produce a new snapshot.
+4. Update `ai-config.env` if agent command or defaults change.
+
+## Anti-Drift
+
+- SLO: refresh every {{sloDays}} day(s) or {{sloCommits}} commit(s) after the truth branch snapshot.
+- Current freshness: {{daysSinceUpdate}} day(s) elapsed, {{commitsSinceTruth}} commit(s) since snapshot.
+- Deterministic snapshot located at `{{snapshotPath}}`.
+- Metrics tracked in `.persistency-meta.json`.
+- Optional automation scripts available under `scripts/ai`.
+
+## Escalation
+
+If authentication fails or the agent CLI cannot be invoked, regenerate credentials before continuing.

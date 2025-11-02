@@ -1,0 +1,39 @@
+{
+  "name": "@vez/init-persistency-layer",
+  "version": "0.1.0",
+  "description": "Initialize or refresh an AI Persistency Layer for software projects.",
+  "type": "module",
+  "bin": {
+    "init-persistency-layer": "./bin/init-persistency-layer.js"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "dev": "tsx src/cli.ts",
+    "prepublishOnly": "pnpm build"
+  },
+  "keywords": [
+    "ai",
+    "persistency",
+    "bootstrap",
+    "cli"
+  ],
+  "author": "Vez Engineering",
+  "license": "MIT",
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "chalk": "^5.3.0",
+    "commander": "^11.1.0",
+    "dayjs": "^1.11.10",
+    "execa": "^8.0.1",
+    "inquirer": "^9.2.11",
+    "ora": "^7.0.1",
+    "simple-git": "^3.22.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.30",
+    "tsx": "^4.7.1",
+    "typescript": "^5.4.3"
+  }
+}

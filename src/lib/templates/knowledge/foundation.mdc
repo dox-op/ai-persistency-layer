@@ -1,0 +1,43 @@
+# {{projectName}} · Knowledge Base
+
+## Context Overview
+
+This repository hosts the source code and documentation collaboratively managed with AI support.
+The persistency layer ensures continuity across agent sessions.
+
+## Functional Layer
+
+- Capture requirements, personas, use cases, and domain terminology.
+- Track process flows using state machines or sequence diagrams.
+- Reference authoritative documents (CSV exports, Confluence pages) stored in `assets/`.
+
+## Technical Layer
+
+- Document architecture slices, service boundaries, data contracts, and integration adapters.
+- Maintain dependency graphs and critical paths.
+- Record infrastructure details (environments, pipelines, observability baselines).
+
+## AI Meta Layer
+
+- Preferred agent: `{{agent}}`.
+- Prompt patterns, guardrails, and escalation procedures live in `knowledge/ai-meta-*.mdc`.
+- Align default model (`{{agent}}` → `{{projectName}}`) with `ai-config.env`.
+
+## Indices
+
+Use index files to map topics to their authoritative document:
+
+- `knowledge/index-functional.mdc`
+- `knowledge/index-technical.mdc`
+- `knowledge/index-ai-meta.mdc`
+
+These indices act as a table of contents for future agent sessions.
+
+## Recursion Mandate
+
+Every time new knowledge is discovered:
+
+1. Identify the correct thematic area.
+2. Update or create the corresponding `.mdc`.
+3. Record the change in `_bootstrap.log`.
+4. Regenerate the snapshot if structural changes occur.

@@ -1,0 +1,33 @@
+# {{projectName}} · Persistency Rules
+
+## Recursive Knowledge Updates
+
+1. Treat every AI session as a knowledge acquisition loop.
+2. When new facts emerge, update the relevant `.mdc` file immediately.
+3. Prefer additive updates that preserve historical context.
+4. Confirm that each update keeps functional, technical, and AI meta aspects in sync.
+
+## Knowledge Taxonomy
+
+- `knowledge/functional-*.mdc`: user journeys, business flows, domain constraints.
+- `knowledge/technical-*.mdc`: architecture, modules, data flows, integration points.
+- `knowledge/ai-meta-*.mdc`: prompts, command recipes, agent-specific instructions.
+
+## Working Agreement
+
+- Respect the separation between functional, technical, and AI meta areas.
+- Avoid duplication: link to existing sections rather than restating.
+- When referencing source code, tag files using relative paths.
+- Keep indices updated to point to the canonical `.mdc` document for every topic.
+
+## Session Hygiene
+
+1. Start sessions through `ai-start.sh` to guarantee consistent environment variables.
+2. Before finishing, run `scripts/ai/check-stale.ts` (if present) to detect drift.
+3. Commit updates to the persistency layer with descriptive messages.
+
+## Golden Rules
+
+- Recursion: feeding new knowledge back into the layer is mandatory.
+- Division: keep functional vs technical vs AI meta topics isolated.
+- Spawner: `ai-start.sh` is the single entry point for agent sessions.

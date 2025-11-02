@@ -1,0 +1,37 @@
+#!/usr/bin/env tsx
+import fs from "node:fs/promises";
+import path from "node:path";
+import process from "node:process";
+import dayjs from "dayjs";
+
+const PROJECT_ROOT = process.cwd();
+const PERSISTENCY_DIR = path.join(PROJECT_ROOT, "{{persistencyDir}}");
+const METADATA_PATH = path.join(PERSISTENCY_DIR, ".persistency-meta.json");
+
+async function main() {
+  const metadataRaw = await fs.readFile(METADATA_PATH, "utf8");
+  const metadata = JSON.parse(metadataRaw) as {
+    updatedAt?: string;
+    freshness?: { daysSinceUpdate: number; commitsSinceTruth: number };
+  };
+
+  if (!metadata.updatedAt) {
+    console.log("Persistency layer has no freshness data yet.");
+    process.exit(1);
+  }
+
+  const updatedAt = dayjs(metadata.updatedAt);
+  const days = dayjs().diff(updatedAt, "day");
+  const commits = metadata.freshness?.commitsSinceTruth ?? 0;
+
+  console.log(`Layer updated ${days} day(s) ago, ${commits} commit(s) since truth.`);
+  if (days > {{sloDays}} || commits > {{sloCommits}}) {
+    console.error("Persistency layer is stale. Please refresh.");
+    process.exit(2);
+  }
+}
+
+main().catch((error) => {
+  console.error("Failed to check persistency freshness:", error);
+  process.exit(1);
+});

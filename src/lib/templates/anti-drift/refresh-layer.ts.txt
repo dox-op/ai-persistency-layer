@@ -1,0 +1,15 @@
+#!/usr/bin/env tsx
+import { execa } from "execa";
+
+const args = process.argv.slice(2);
+
+async function main() {
+  const command = "init-persistency-layer";
+  console.log("Refreshing AI persistency layer...");
+  await execa(command, ["--yes", ...args], { stdio: "inherit" });
+}
+
+main().catch((error) => {
+  console.error("Failed to refresh persistency layer:", error);
+  process.exit(1);
+});
