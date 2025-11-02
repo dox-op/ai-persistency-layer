@@ -186,7 +186,7 @@ export async function ensureAgentCli(
   return resolved;
 }
 
-export async function ensureAgentAuth(agent: SupportedAgent): Promise<void> {
+export async function ensureAgentAuth(agent: SupportedAgent, aiCmd: string): Promise<void> {
   const envVars = AUTH_HINTS[agent];
   const hasEnv = envVars.some((envVar) => Boolean(process.env[envVar]));
   if (hasEnv) {
@@ -204,8 +204,18 @@ export async function ensureAgentAuth(agent: SupportedAgent): Promise<void> {
     }
   }
 
-  const prettyList = envVars.map((envVar) => `\`${envVar}\``).join(", ");
-  throw new Error(
-    `Missing authentication for ${agent} CLI. Ensure one of ${prettyList} is set or configure credentials.`,
-  );
+  try {
+    await execa(aiCmd, ["--version"], { stdio: "ignore" });
+    console.warn(
+      chalk.yellow(
+        `Warning: no ${agent} auth variables or credential files detected, but ${aiCmd} responded. Continuing.`,
+      ),
+    );
+    return;
+  } catch {
+    const prettyList = envVars.map((envVar) => `\`${envVar}\``).join(", ");
+    throw new Error(
+      `Missing authentication for ${agent} CLI. Ensure one of ${prettyList} is set or configure credentials.`,
+    );
+  }
 }

@@ -73,8 +73,7 @@ Set the appropriate environment variable (or equivalent config file) before runn
 | Claude | `ANTHROPIC_API_KEY` | `~/.config/claude/credentials`, `~/.claude/credentials` |
 | Gemini | `GOOGLE_API_KEY`, `GEMINI_API_KEY` | `~/.config/gemini/credentials`, `~/.gemini/credentials` |
 
-If none of the variables exist and no credential file is found, the CLI stops with exit code `4` so you can configure authentication safely.  
-When an agent CLI is already logged in (for example via `claude login` or `gcloud auth application-default login`), the generated credential files above satisfy the requirement—no extra environment variables are necessary.
+If none of the variables exist and no credential file is found, the CLI checks whether the agent binary responds (for example, after running `codex login`). If it does, the tool proceeds with a warning; otherwise it exits with code `4` so you can complete the authentication.
 
 ## Local Development (contributors only)
 

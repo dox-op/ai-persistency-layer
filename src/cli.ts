@@ -141,7 +141,7 @@ async function run(): Promise<void> {
     options.installMethod,
     options.aiCmd,
   );
-  await ensureAgentAuth(options.agent);
+  await ensureAgentAuth(options.agent, aiCmd);
 
   const spinner = ora("Preparing AI persistency layer...").start();
 

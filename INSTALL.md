@@ -20,8 +20,7 @@ Configure at least one of the variables listed below (or ensure the equivalent c
 | Claude | `ANTHROPIC_API_KEY` | `~/.config/claude/credentials`, `~/.claude/credentials` |
 | Gemini | `GOOGLE_API_KEY`, `GEMINI_API_KEY` | `~/.config/gemini/credentials`, `~/.gemini/credentials` |
 
-If none of the variables or files are found, the CLI exits with code `4` so that authentication can be completed safely.  
-If the CLI for your agent is already logged in (for example via `claude login`), the credential file it generates counts as authentication—no extra environment variables are required.
+If none of the variables or files are found, the tool pings the agent CLI. If the binary is already logged in (for example via `codex login`), execution continues with a warning; otherwise it exits with code `4` so that authentication can be completed safely.
 
 Example (Codex):
 
