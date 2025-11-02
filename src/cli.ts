@@ -8,6 +8,7 @@ import dayjs from "dayjs";
 import {
   DEFAULT_PERSISTENCY_DIR,
   DEFAULT_SNAPSHOT_DIR,
+  DEFAULT_LOG_FILE,
   EXIT_CODES,
   SUPPORTED_AGENTS,
   type PersistencyMetadata,
@@ -77,11 +78,13 @@ function buildProgram(): Command {
       ).choices(["pnpm", "npm", "brew", "pipx", "skip"]),
     )
     .option("--default-model <string>", "Default AI model identifier.")
-    .option("--write-config", "Write ai-config.env and anti-drift scripts.", false)
+    .option("--write-config", "Write persistency.config.env and anti-drift scripts.", false)
     .option("--asset <path>", "Additional asset to include.", collect, [])
     .option("--non-interactive", "Fail if required inputs are missing.", false)
     .option("--yes", "Assume yes for confirmations.", false)
     .option("--force", "Overwrite existing files.", false)
+    .option("--keep-backup", "Retain a backup of the existing persistency layer.", false)
+    .option("--log-history", "Append to _bootstrap.log with refresh details.", false)
     .option("--start-session", "Immediately start an AI session after bootstrap.", false)
     .allowUnknownOption(false)
     .showHelpAfterError();
@@ -105,6 +108,8 @@ async function run(): Promise<void> {
     nonInteractive: false,
     yes: false,
     force: false,
+    keepBackup: false,
+    logHistory: false,
     startSession: false,
   };
   const flags: CliFlags = {
@@ -150,7 +155,7 @@ async function run(): Promise<void> {
   const spinner = ora("Preparing AI persistency layer...").start();
   const legacySources: string[] = [];
 
-  if (!options.force) {
+  if (!options.force && options.keepBackup) {
     const backupPath = await backupExistingLayer(persistencyPath, projectPath);
     if (backupPath) {
       spinner.info(`Existing layer backed up to ${backupPath}`);
@@ -244,15 +249,20 @@ async function run(): Promise<void> {
   };
 
   await writeMetadata(persistencyPath, metadata);
-  await writeLogEntry(
-    persistencyPath,
-    `Refreshed by ai-persistency-layer on ${truthBranch} (commit ${snapshot.commit.slice(0, 7)})`,
-  );
-  if (legacySources.length) {
+
+  if (options.logHistory) {
     await writeLogEntry(
       persistencyPath,
-      `Legacy sources to reconcile: ${legacySources.join(", ")}`,
+      `Refreshed by ai-persistency-layer on ${truthBranch} (commit ${snapshot.commit.slice(0, 7)})`,
     );
+    if (legacySources.length) {
+      await writeLogEntry(
+        persistencyPath,
+        `Legacy sources to reconcile: ${legacySources.join(", ")}`,
+      );
+    }
+  } else {
+    await fs.rm(path.join(persistencyPath, DEFAULT_LOG_FILE), { force: true });
   }
 
   spinner.succeed("AI persistency layer ready.");

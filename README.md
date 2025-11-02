@@ -10,7 +10,7 @@ The tool mirrors the behaviour of the original `init-persistency-layer.sh` scrip
 - Detects, installs, or updates Codex, Claude, or Gemini CLIs using `execa`.
 - Authenticates by checking standard environment variables and credential files (see “Authentication Requirements”).
 - Generates deterministic `.mdc` domain foundations (functional, technical, AI-meta) and bootstrap content.
-- Creates `ai-start.sh`, `ai-config.env`, `_bootstrap.log`, and anti-drift scripts.
+- Creates `ai-start.sh`, `persistency.config.env`, optional `_bootstrap.log`, and anti-drift scripts.
 - Captures a Git snapshot for the chosen truth branch and records freshness metrics.
 
 ## Installation
@@ -43,11 +43,13 @@ ai-persistency-layer [options]
 | `--ai-cmd <cmd>` | Explicit agent command/binary. |
 | `--install-method <pnpm|npm|brew|pipx|skip>` | Preferred installation strategy. |
 | `--default-model <string>` | Default model identifier. |
-| `--write-config` | Write `ai-config.env` and anti-drift scripts. |
+| `--write-config` | Write `persistency.config.env` and anti-drift scripts. |
 | `--asset <path>` | Extra asset to copy into the layer (repeatable). |
 | `--non-interactive` | Fail instead of prompting for missing inputs. |
 | `--yes` | Auto-confirm prompts (implies `--write-config`). |
 | `--force` | Overwrite existing files. |
+| `--keep-backup` | Retain the previous layer in `ai-backup/` before regenerating. |
+| `--log-history` | Append refresh details to `_bootstrap.log` (default: off). |
 | `--start-session` | Launch the agent immediately after bootstrapping. |
 | `-h, --help` | Display help. |
 
@@ -124,9 +126,19 @@ This tool is not a silver bullet for AI-agent adoption; treat the suggestions be
 
 ## Logging & Metadata
 
-- `_bootstrap.log` stores chronological activity.
+- `_bootstrap.log` (when `--log-history` is used) stores chronological activity.
 - `.persistency-meta.json` tracks last refresh, snapshot commit, and freshness metrics.
 
 ## Start Script
 
 `ai-start.sh` exports the tri-domain paths (`PROJECT_PERSISTENCY_FUNCTIONAL`, `PROJECT_PERSISTENCY_TECHNICAL`, `PROJECT_PERSISTENCY_AI_META`) and then execs the selected AI CLI, ensuring sessions always load the correct context.
+
+## FAQ
+
+**Che cosa sono gli “anti-drift scripts”?**  
+Quando esegui il CLI con `--write-config`, vengono generati due script in `scripts/ai/`:
+- `check-stale.ts` legge `.persistency-meta.json` e segnala (exit code ≠ 0) se il layer ha superato gli SLO di freschezza predefiniti (7 giorni o 200 commit). È pensato per CI/cron.
+- `refresh-layer.ts` rilancia automaticamente il bootstrap (`ai-persistency-layer --yes …`), così puoi pianificare rigenerazioni periodiche o reagire agli avvisi di drift.
+
+**Dove salvo le impostazioni per mantenere il layer idempotente?**  
+Nel bootstrap viene creato `persistency.config.env` nella radice dello strato: contiene nome progetto, path di riferimento, comando dell’agent e i percorsi relativi dei tre domini. Puoi arricchirlo con variabili tue o script di orchestrazione; il CLI lo rigenera/aggiorna ad ogni corsa mantenendo la configurazione all’interno del layer stesso.

@@ -15,6 +15,8 @@ export interface CliFlags {
   nonInteractive: boolean;
   yes: boolean;
   force: boolean;
+  keepBackup: boolean;
+  logHistory: boolean;
   startSession: boolean;
 }
 
