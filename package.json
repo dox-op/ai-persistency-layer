@@ -10,6 +10,7 @@
     "build": "pnpm run compile && pnpm run copy-templates",
     "compile": "tsc -p tsconfig.json",
     "copy-templates": "node ./scripts/copy-templates.mjs",
+    "test:package": "node ./scripts/test-package.mjs",
     "dev": "tsx src/cli.ts",
     "prepublishOnly": "pnpm build",
     "prepack": "pnpm build"

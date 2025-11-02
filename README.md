@@ -90,8 +90,9 @@ Before using `pnpm link --global`, run `pnpm build` once so the compiled `dist/`
 
 1. Install dependencies: `pnpm install`.
 2. Build the distributable: `pnpm run build`.
-3. (Optional) Verify the package contents: `npm pack` and inspect the tarball for `dist/cli.js`.
-4. Publish: `npm publish --access public`.
+3. Run the packaging smoke test: `pnpm run test:package` (ensures templates exist and the compiled CLI works end-to-end).
+4. (Optional) Inspect the tarball with `npm pack`.
+5. Publish: `npm publish --access public`.
 
 Always run the build step before publishing so the `dist/` folder ships with the package.
 

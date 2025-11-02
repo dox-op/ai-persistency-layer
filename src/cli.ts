@@ -92,6 +92,7 @@ function collect(value: string, previous: string[]): string[] {
 }
 
 async function run(): Promise<void> {
+  const overrideProjectPath = process.env.APL_TEST_TARGET;
   const program = buildProgram();
   const parsed = program.parse(process.argv);
 
@@ -114,7 +115,9 @@ async function run(): Promise<void> {
     assets: flags.assets ?? [],
   });
 
-  const projectPath = path.resolve(options.projectPath ?? process.cwd());
+  const projectPath = overrideProjectPath
+    ? path.resolve(overrideProjectPath)
+    : path.resolve(options.projectPath ?? process.cwd());
   options.projectPath = projectPath;
 
   const persistencyPath = path.resolve(
