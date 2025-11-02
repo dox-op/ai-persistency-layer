@@ -20,6 +20,7 @@ async function copyRecursive(src, dest) {
       }),
     );
   } else {
+    await mkdir(path.dirname(dest), { recursive: true });
     await copyFile(src, dest);
   }
 }

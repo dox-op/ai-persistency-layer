@@ -15,7 +15,7 @@ import {
 } from "./constants.js";
 import type { ResolvedOptions, AntiDriftMetrics } from "./types.js";
 
-const TEMPLATE_ROOT = path.dirname(fileURLToPath(new URL("./templates/", import.meta.url)));
+const TEMPLATE_ROOT = fileURLToPath(new URL("./templates/", import.meta.url));
 
 async function readTemplate(relativePath: string): Promise<string> {
   const templatePath = path.join(TEMPLATE_ROOT, relativePath);
