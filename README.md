@@ -73,15 +73,28 @@ Set the appropriate environment variable (or equivalent config file) before runn
 | Claude | `ANTHROPIC_API_KEY` | `~/.config/claude/credentials`, `~/.claude/credentials` |
 | Gemini | `GOOGLE_API_KEY`, `GEMINI_API_KEY` | `~/.config/gemini/credentials`, `~/.gemini/credentials` |
 
-If none of the variables exist and no credential file is found, the CLI stops with exit code `4` so you can configure authentication safely.
+If none of the variables exist and no credential file is found, the CLI stops with exit code `4` so you can configure authentication safely.  
+When an agent CLI is already logged in (for example via `claude login` or `gcloud auth application-default login`), the generated credential files above satisfy the requirement—no extra environment variables are necessary.
 
-## Local Development (optional)
+## Local Development (contributors only)
 
 ```bash
 pnpm install
 pnpm dev        # tsx src/cli.ts
 pnpm build      # tsc
 ```
+
+Only run these commands when you are modifying the CLI locally.  
+Before using `pnpm link --global`, run `pnpm build` once so the compiled `dist/` output is present. End users who install from npm do not need to build anything.
+
+## Publishing (maintainers)
+
+1. Install dependencies: `pnpm install`.
+2. Build the distributable: `pnpm run build`.
+3. (Optional) Verify the package contents: `npm pack` and inspect the tarball for `dist/cli.js`.
+4. Publish: `npm publish --access public`.
+
+Always run the build step before publishing so the `dist/` folder ships with the package.
 
 ## Anti-Drift Automation
 

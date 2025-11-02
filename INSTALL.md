@@ -20,7 +20,8 @@ Configure at least one of the variables listed below (or ensure the equivalent c
 | Claude | `ANTHROPIC_API_KEY` | `~/.config/claude/credentials`, `~/.claude/credentials` |
 | Gemini | `GOOGLE_API_KEY`, `GEMINI_API_KEY` | `~/.config/gemini/credentials`, `~/.gemini/credentials` |
 
-If none of the variables or files are found, the CLI exits with code `4` so that authentication can be completed safely.
+If none of the variables or files are found, the CLI exits with code `4` so that authentication can be completed safely.  
+If the CLI for your agent is already logged in (for example via `claude login`), the credential file it generates counts as authentication—no extra environment variables are required.
 
 Example (Codex):
 
@@ -60,4 +61,13 @@ Use `--non-interactive` for automation and `--install-method` to control CLI ins
 
 ## 6. Need to customize?
 
-If you plan to modify the CLI itself, clone the repository, run `pnpm install`, and use `pnpm dev` / `pnpm build`. For everyday usage, installing from npm (as shown above) is sufficient.
+If you're contributing changes to the CLI itself:
+
+```bash
+pnpm install
+pnpm dev        # tsx src/cli.ts
+pnpm build      # produces dist/
+pnpm link --global
+```
+
+Only contributors need these steps; end users installing from npm already receive the compiled binaries.

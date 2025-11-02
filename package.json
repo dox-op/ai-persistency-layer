@@ -1,6 +1,6 @@
 {
   "name": "@dox-op/ai-persistency-layer",
-  "version": "0.1.2",
+  "version": "0.1.4",
   "description": "Idempotently bootstrap or refresh an AI Persistency Layer for software projects.",
   "type": "module",
   "bin": {
@@ -9,7 +9,8 @@
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "dev": "tsx src/cli.ts",
-    "prepublishOnly": "pnpm build"
+    "prepublishOnly": "pnpm build",
+    "prepack": "pnpm build"
   },
   "keywords": [
     "ai",
@@ -32,9 +33,17 @@
     "simple-git": "^3.22.0"
   },
   "devDependencies": {
-    "@types/inquirer": "^9.0.7",
+    "@types/inquirer": "^9.0.9",
     "@types/node": "^20.11.30",
     "tsx": "^4.7.1",
     "typescript": "^5.4.3"
-  }
+  },
+  "files": [
+    "bin",
+    "dist",
+    "src/lib/templates",
+    "README.md",
+    "INSTALL.md",
+    "LICENSE"
+  ]
 }
