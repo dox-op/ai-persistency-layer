@@ -80,13 +80,16 @@ async function ensureCliRuns() {
       }
     });
 
+    const metadataPath = path.join(tmpDir, "ai", ".persistency-meta.json");
+
     const expectedOutputs = [
       path.join(tmpDir, "ai", "functional", "foundation.mdc"),
       path.join(tmpDir, "ai", "technical", "foundation.mdc"),
       path.join(tmpDir, "ai", "ai-meta", "foundation.mdc"),
       path.join(tmpDir, "ai", "ai-meta", "legacy-import.mdc"),
       path.join(tmpDir, "ai", "technical", "snapshots"),
-      path.join(tmpDir, "ai", "ai-bootstrap.mdc")
+      path.join(tmpDir, "ai", "ai-bootstrap.mdc"),
+      metadataPath
     ];
 
     for (const file of expectedOutputs) {
@@ -94,6 +97,32 @@ async function ensureCliRuns() {
         throw new Error(`Expected file not generated: ${file}`);
       }
     }
+
+    const nonInteractiveCommand = [
+      "node",
+      "./dist/cli.js",
+      "--project-path",
+      tmpDir,
+      "--non-interactive",
+      "--yes",
+      "--ai-cmd",
+      "node",
+      "--install-method",
+      "skip",
+      "--write-config",
+      "--force"
+    ].join(" ");
+
+    await run(nonInteractiveCommand, {
+      cwd: process.cwd(),
+      env: {
+        ...process.env,
+        GIT_AUTHOR_NAME: "Test",
+        GIT_AUTHOR_EMAIL: "tester@example.com",
+        GIT_COMMITTER_NAME: "Test",
+        GIT_COMMITTER_EMAIL: "tester@example.com"
+      }
+    });
   } finally {
     await rm(tmpDir, { recursive: true, force: true });
   }
