@@ -1,0 +1,15 @@
+# Technical Summary Index
+
+> Agents: this index must mirror the structure under `technical/`. Keep it updated whenever architecture docs, runbooks, or snapshots shift.
+
+## Architecture Surfaces
+
+- _(List modules/services with links to detailed `.mdc` files.)_
+
+## Operations & Observability
+
+- _(Track runbooks, SLO notes, and monitoring assets.)_
+
+## Key Decisions
+
+- _(Capture ADR references or decision threads that impact the codebase.)_

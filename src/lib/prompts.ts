@@ -1,6 +1,7 @@
 import inquirer, { type QuestionCollection } from "inquirer";
 import path from "node:path";
 import { SUPPORTED_AGENTS, type SupportedAgent } from "./constants.js";
+import { detectAgentBinary } from "./ai-install.js";
 import type { CliFlags, ResolvedOptions } from "./types.js";
 
 export async function promptForMissingOptions(flags: CliFlags): Promise<ResolvedOptions> {
@@ -22,6 +23,7 @@ export async function promptForMissingOptions(flags: CliFlags): Promise<Resolved
       agent: flags.agent!,
       aiCmd: flags.aiCmd ?? "",
       prodBranch: flags.prodBranch ?? "",
+      intakeNotes: flags.intakeNotes?.trim() ?? "",
     };
   }
 
@@ -47,7 +49,8 @@ export async function promptForMissingOptions(flags: CliFlags): Promise<Resolved
       type: "input",
       message: "Persistency layer directory:",
       default: flags.persistencyDir,
-      when: false,
+      when: !flags.persistencyDirProvided,
+      filter: (value: string) => value.trim() || flags.persistencyDir,
     },
     {
       name: "prodBranch",
@@ -67,9 +70,22 @@ export async function promptForMissingOptions(flags: CliFlags): Promise<Resolved
     {
       name: "aiCmd",
       type: "input",
-      message: "AI CLI command (leave empty to auto-detect):",
+      message: "AI CLI command override (optional full path or alias; press ENTER if the agent is already on PATH):",
       default: flags.aiCmd ?? "",
-      when: !flags.aiCmd,
+      when: async (answers) => {
+        if (flags.aiCmd) return false;
+        const agentCandidate = (flags.agent ?? answers.agent) as SupportedAgent | undefined;
+        if (!agentCandidate) {
+          return true;
+        }
+        const detected = await detectAgentBinary(agentCandidate);
+        if (detected) {
+          // Persist the detected path so downstream logic can reuse it without prompting again.
+          (answers as Record<string, unknown>)._autoDetectedAiCmd = detected;
+          return false;
+        }
+        return true;
+      },
     },
     {
       name: "defaultModel",
@@ -89,11 +105,25 @@ export async function promptForMissingOptions(flags: CliFlags): Promise<Resolved
           .map((item) => item.trim())
           .filter(Boolean),
     },
+    {
+      name: "intakeNotes",
+      type: "input",
+      message:
+        "Supplemental notes or documentation sources (CSV exports, Confluence URLs, etc.):",
+      when: typeof flags.intakeNotes === "undefined",
+      filter: (value: string) => value.trim(),
+    },
   ];
 
   const answers = await inquirer.prompt(questions);
 
   const agent = (flags.agent ?? answers.agent) as SupportedAgent;
+  const autoDetectedAiCmd = (answers as Record<string, unknown>)._autoDetectedAiCmd as string | undefined;
+
+  if (autoDetectedAiCmd && !flags.aiCmd && !answers.aiCmd) {
+    // propagate detection so metadata/outputs can record the actual binary used
+    answers.aiCmd = autoDetectedAiCmd;
+  }
 
   return {
     ...flags,
@@ -104,6 +134,7 @@ export async function promptForMissingOptions(flags: CliFlags): Promise<Resolved
     aiCmd: flags.aiCmd ?? answers.aiCmd ?? "",
     defaultModel: flags.defaultModel ?? answers.defaultModel ?? undefined,
     assets: flags.assets.length ? flags.assets : answers.assets ?? [],
+    intakeNotes: (flags.intakeNotes ?? answers.intakeNotes ?? "").trim(),
   };
 }
 

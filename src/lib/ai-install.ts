@@ -71,7 +71,7 @@ async function resolveCommand(binary: string): Promise<string | undefined> {
   }
 }
 
-async function findExistingBinary(
+export async function detectAgentBinary(
   agent: SupportedAgent,
   hint?: string,
 ): Promise<string | undefined> {
@@ -155,7 +155,7 @@ export async function ensureAgentCli(
   installMethod: "pnpm" | "npm" | "brew" | "pipx" | "skip" | undefined,
   hint?: string,
 ): Promise<string> {
-  const initial = await findExistingBinary(agent, hint);
+  const initial = await detectAgentBinary(agent, hint);
   if (initial) {
     if (installMethod && installMethod !== "skip") {
       try {
@@ -178,7 +178,7 @@ export async function ensureAgentCli(
   }
 
   await installWithMethod(agent, installMethod);
-  const resolved = await findExistingBinary(agent, hint);
+  const resolved = await detectAgentBinary(agent, hint);
   if (!resolved) {
     throw new Error(`Installed ${agent} CLI but command not found on PATH.`);
   }

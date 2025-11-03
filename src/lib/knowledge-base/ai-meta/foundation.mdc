@@ -11,12 +11,16 @@
 1. Every AI session starts via `ai-start.sh` so the environment is deterministic.
 2. Agents must log new knowledge in `functional/` or `technical/` as appropriate—not here.
 3. Record prompt archetypes, command recipes, and safe defaults for `{{agent}}`.
+4. Curate `ai-meta/index.mdc` with links and descriptions for prompts, guardrails, and playbooks.
+5. Ensure every `.mdc` or `.json` artifact in the persistency layer stays in English to support downstream consumers.
+6. Track a taxonomy of agent playbooks and automation patterns so recurring tasks can be launched consistently.
 
 ## Recommended Structure
 
 - `ai-meta/index.mdc` → overview of agent roles, tooling, escalation ladder.
 - `ai-meta/prompts/` → reusable prompt templates and modifiers.
 - `ai-meta/operations.mdc` → process checklist, Definition of Done, anti-drift cadence.
-- `ai-meta/legacy-import.mdc` → automatically generated file capturing pre-existing layer material for migration.
+- `ai-meta/migration-brief.mdc` → automatically generated brief guiding the migration of existing layers.
+- `ai-meta/taxonomy/` → inventory of agent behaviors, guardrails, and escalation scenarios.
 
-> Guidance for agents: before executing tasks, review `ai-meta/legacy-import.mdc` (if present) and reconcile legacy conventions with this playbook. All new knowledge must respect the three-domain separation.
+> Guidance for agents: before executing tasks, review `ai-meta/migration-brief.mdc` (if present) and reconcile legacy conventions with this playbook. All new knowledge must respect the three-domain separation.

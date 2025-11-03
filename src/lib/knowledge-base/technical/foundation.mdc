@@ -11,6 +11,9 @@
 1. Every code change must reference the relevant section in this directory.
 2. Keep diagrams and dependency graphs close to the source; update or cross-link when components evolve.
 3. Surface breaking changes quickly so functional owners can evaluate downstream impact.
+4. Maintain `technical/index.mdc` as the up-to-date map of this directory.
+5. Author all `.mdc` and `.md` content in English to guarantee consistency across teams.
+6. Maintain a taxonomy of technical problems, constraints, and architectural patterns for quick lookup.
 
 ## Recommended Structure
 
@@ -18,5 +21,6 @@
 - `technical/services/` → service/API docs, data schemas, messaging contracts.
 - `technical/infrastructure/` → environments, pipelines, platform integrations.
 - `technical/operations/` → runbooks, SLO/SLA definitions, alert strategies.
+- `technical/taxonomy/` → recurring technical challenges, mitigations, and decision records.
 
 > Guidance for agents: when planning or implementing code, cite the section in this directory that authorizes the change and record any deviations.
