@@ -50,6 +50,54 @@ async function readExistingMetadata(metaPath: string): Promise<PersistencyMetada
   }
 }
 
+async function applyMetadataDefaults(flags: CliFlags): Promise<CliFlags> {
+  const baseProjectPath = path.resolve(flags.projectPath ?? process.cwd());
+  const candidatePersistencyDir = flags.persistencyDir ?? DEFAULT_PERSISTENCY_DIR;
+  const candidatePersistencyPath = path.isAbsolute(candidatePersistencyDir)
+    ? candidatePersistencyDir
+    : path.join(baseProjectPath, candidatePersistencyDir);
+  const directMetaPath = path.join(baseProjectPath, ".persistency-meta.json");
+  const metadataCandidates = [
+    path.join(candidatePersistencyPath, ".persistency-meta.json"),
+    directMetaPath,
+  ];
+
+  let metadata: PersistencyMetadata | undefined;
+  for (const candidate of metadataCandidates) {
+    metadata = await readExistingMetadata(candidate);
+    if (metadata) break;
+  }
+  if (!metadata) {
+    return flags;
+  }
+
+  const nextFlags: CliFlags = {
+    ...flags,
+    projectName: flags.projectName ?? metadata.projectName,
+    projectPath: flags.projectPath ?? metadata.projectPath,
+    prodBranch: flags.prodBranch ?? metadata.prodBranch,
+    agent: flags.agent ?? metadata.agent,
+    defaultModel: flags.defaultModel ?? metadata.defaultModel,
+    persistencyDir: metadata.persistencyDir ?? flags.persistencyDir,
+    assets: flags.assets ?? [],
+  };
+
+  if (!nextFlags.installMethod) {
+    const installMethod = metadata.installMethod;
+    if (
+      installMethod === "pnpm" ||
+      installMethod === "npm" ||
+      installMethod === "brew" ||
+      installMethod === "pipx" ||
+      installMethod === "skip"
+    ) {
+      nextFlags.installMethod = installMethod;
+    }
+  }
+
+  return nextFlags;
+}
+
 function buildProgram(): Command {
   const program = new Command("ai-persistency-layer");
   program
@@ -116,9 +164,10 @@ async function run(): Promise<void> {
     ...defaults,
     ...rawOpts,
   };
+  const hydratedFlags = await applyMetadataDefaults(flags);
   const options = await promptForMissingOptions({
-    ...flags,
-    assets: flags.assets ?? [],
+    ...hydratedFlags,
+    assets: hydratedFlags.assets ?? [],
   });
 
   const projectPath = overrideProjectPath
