@@ -1,0 +1,38 @@
+# Migration Session Brief
+
+> Generated automatically each time the CLI prepares a migration on **{{projectName}}**.
+
+## Existing Layer
+
+- Primary location: `{{existingLayer}}`
+- Additional material to reconcile:
+{{sourcesList}}
+
+## Updated Knowledge Base Guardrails
+
+- Preserve the current `.mdc` corpus; refine it instead of replacing it.
+- Enforce English-only documentation.
+- Keep `functional/index.mdc`, `technical/index.mdc`, and `ai-meta/index.mdc` aligned with on-disk content.
+- Maintain the tri-domain separation and respect the recursive enrichment rule.
+- Ensure `ai-start.sh` continues to launch the chosen agent with the persistency context.
+
+## Supplemental Inputs
+
+{{intakeNotes}}
+
+## Directory Assessment
+
+- Canonical domains missing prior to migration:
+{{missingCanonical}}
+- Additional directories referenced in the existing bootstrap:
+{{referencedExtras}}
+- Additional directories not referenced in the existing bootstrap (review before moving or archiving):
+{{unreferencedExtras}}
+
+## Agent Runbook (`{{agent}}`)
+
+1. Load the existing layer and review the domain foundations.
+2. Integrate the supplemental inputs above, annotating their origin in the domain indexes.
+3. Confirm that additional directories remain discoverable via `ai-bootstrap.mdc` or archive them explicitly.
+4. Update or create `.mdc` entries so every new insight is captured under the correct domain.
+5. Summarise the migration outcome (changes applied, pending gaps, follow-ups) back into this brief or `_bootstrap.log`.

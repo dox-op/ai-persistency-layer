@@ -8,6 +8,8 @@ import dayjs from "dayjs";
 import {
   DEFAULT_PERSISTENCY_DIR,
   DEFAULT_LOG_FILE,
+  DEFAULT_START_SCRIPT,
+  DEFAULT_UPSERT_SCRIPT,
   EXIT_CODES,
   SUPPORTED_AGENTS,
   PERSISTENCY_METADATA_FILE,
@@ -34,14 +36,17 @@ import {
   ensureBaseLayout,
   backupExistingLayer,
   copyAssets,
+  analyzePersistencyLayout,
   writeBootstrap,
   writeDomainFoundations,
   writeConfigEnv,
   writeStartScript,
+  writeUpsertScript,
   writeLogEntry,
   writeMetadata,
   writeAntiDriftScripts,
-  writeLegacyImportManifest,
+  writeMigrationBrief,
+  writeUpsertPrompt,
 } from "./lib/fs-utils.js";
 
 async function readExistingMetadata(metaPath: string): Promise<PersistencyMetadata | undefined> {
@@ -65,6 +70,15 @@ async function readPersistencyPointer(
     return trimmed.length ? trimmed : undefined;
   } catch {
     return undefined;
+  }
+}
+
+async function pathExists(target: string): Promise<boolean> {
+  try {
+    await fs.access(target);
+    return true;
+  } catch {
+    return false;
   }
 }
 
@@ -110,6 +124,8 @@ async function applyMetadataDefaults(flags: CliFlags): Promise<MetadataResolutio
     nextFlags.agent = nextFlags.agent ?? metadata.agent;
     nextFlags.defaultModel =
       nextFlags.defaultModel ?? metadata.defaultModel;
+    nextFlags.intakeNotes =
+      nextFlags.intakeNotes ?? metadata.intakeNotes;
 
     if (!nextFlags.installMethod) {
       const installMethod = metadata.installMethod;
@@ -165,6 +181,10 @@ function buildProgram(): Command {
     .option("--default-model <string>", "Default AI model identifier.")
     .option("--write-config", "Write persistency.config.env and anti-drift scripts.", false)
     .option("--asset <path>", "Additional asset to include.", collect, [])
+    .option(
+      "--intake-notes <text>",
+      "Comma-separated notes or references to supplemental documentation (CSV exports, Confluence paths, etc.).",
+    )
     .option("--non-interactive", "Fail if required inputs are missing.", false)
     .option("--yes", "Assume yes for confirmations.", false)
     .option("--force", "Overwrite existing files.", false)
@@ -226,6 +246,8 @@ async function run(): Promise<void> {
     assets: hydratedFlags.assets ?? [],
   });
 
+  options.intakeNotes = options.intakeNotes.trim();
+
   const projectPath = overrideProjectPath
     ? path.resolve(overrideProjectPath)
     : path.resolve(options.projectPath ?? process.cwd());
@@ -257,8 +279,51 @@ async function run(): Promise<void> {
   );
   await ensureAgentAuth(options.agent, aiCmd);
 
-  const spinner = ora("Preparing AI persistency layer...").start();
-  const legacySources: string[] = [];
+  const persistencyExists = await pathExists(persistencyPath);
+  if (!persistencyExists) {
+    console.error(
+      chalk.red(
+        `No persistency layer found at ${persistencyPath}. Please create an initial layer manually before running this migration tool.`,
+      ),
+    );
+    process.exit(EXIT_CODES.INVALID_ARGS);
+  }
+
+  if (options.nonInteractive && !options.yes) {
+    console.error(
+      chalk.red(
+        "Cannot continue without confirmation. Re-run with --yes or disable --non-interactive.",
+      ),
+    );
+    process.exit(EXIT_CODES.INVALID_ARGS);
+  }
+
+  if (!options.yes) {
+    const confirmation = await import("inquirer").then((mod) =>
+      mod.default.prompt([
+        {
+          name: "proceed",
+          type: "confirm",
+          message:
+            `Existing persistency layer detected at ${persistencyPath}. Launch ${options.agent} to migrate it using the updated knowledge base rules?`,
+          default: true,
+        },
+      ]),
+    );
+    if (!confirmation.proceed) {
+      console.log(
+        chalk.yellow("Migration aborted by user. Persistency layer unchanged."),
+      );
+      process.exit(EXIT_CODES.GENERIC_FAILURE);
+    }
+  }
+
+  const layoutSnapshot = await analyzePersistencyLayout(persistencyPath);
+
+  const spinner = ora("Preparing AI persistency layer migration...").start();
+  const legacySources: string[] = [
+    path.relative(projectPath, persistencyPath) || ".",
+  ];
 
   if (!options.force && options.keepBackup) {
     const backupPath = await backupExistingLayer(persistencyPath, projectPath);
@@ -269,7 +334,6 @@ async function run(): Promise<void> {
     }
   }
 
-  await fs.rm(persistencyPath, { recursive: true, force: true });
   await ensureBaseLayout(persistencyPath);
 
   if (options.prevLayer) {
@@ -326,9 +390,38 @@ async function run(): Promise<void> {
   }
 
   await writeStartScript(persistencyPath, aiCmd, options.force);
-  await writeLegacyImportManifest(
+  await writeUpsertScript(persistencyPath, aiCmd, options.force);
+  const existingLayerRel = path.relative(projectPath, persistencyPath) || ".";
+  const migrationBriefFullPath = path.join(
     persistencyPath,
-    legacySources,
+    "ai-meta",
+    "migration-brief.mdc",
+  );
+  const migrationBriefRelPath = path.relative(projectPath, migrationBriefFullPath);
+  await writeMigrationBrief(
+    persistencyPath,
+    {
+      projectName: options.projectName,
+      agent: options.agent,
+      existingLayer: existingLayerRel,
+      sources: legacySources.slice(1),
+      intakeNotes: options.intakeNotes,
+      referencedExtras: layoutSnapshot.referencedExtras,
+      unreferencedExtras: layoutSnapshot.unreferencedExtras,
+      missingCanonicalDirs: layoutSnapshot.missingCanonicalDirs,
+    },
+  );
+
+  const upsertPromptPath = await writeUpsertPrompt(
+    projectPath,
+    existingLayerRel,
+    {
+      projectName: options.projectName,
+      agent: options.agent,
+      layout: layoutSnapshot,
+      intakeNotes: options.intakeNotes,
+      migrationBriefRelPath,
+    },
   );
 
   const metadata: PersistencyMetadata = {
@@ -342,9 +435,10 @@ async function run(): Promise<void> {
     updatedAt: dayjs().toISOString(),
     installMethod: options.installMethod,
     assets: copiedAssets.map((assetPath) => path.relative(projectPath, assetPath)),
-    legacySources: legacySources.length
-      ? legacySources
+    legacySources: legacySources.length > 1
+      ? legacySources.slice(1)
       : undefined,
+    intakeNotes: options.intakeNotes.length ? options.intakeNotes : undefined,
     freshness: metrics,
   };
 
@@ -365,38 +459,40 @@ async function run(): Promise<void> {
     await fs.rm(path.join(persistencyPath, DEFAULT_LOG_FILE), { force: true });
   }
 
-  spinner.succeed("AI persistency layer ready.");
+  const migrationBriefPath = path.join(
+    persistencyPath,
+    "ai-meta",
+    "migration-brief.mdc",
+  );
+  spinner.succeed("Migration brief prepared. Existing layer preserved.");
 
   console.log(chalk.green(`Persistency directory: ${persistencyPath}`));
+  console.log(chalk.green(`Migration brief: ${migrationBriefPath}`));
+  console.log(chalk.green(`Upsert prompt: ${upsertPromptPath}`));
   console.log(chalk.green(`Truth branch commit: ${truthCommit.slice(0, 7)}`));
-
-  if (options.startSession || (!options.nonInteractive && !options.yes)) {
-    try {
-      const answer = await import("inquirer").then((mod) =>
-        mod.default.prompt([
-          {
-            name: "startNow",
-            type: "confirm",
-            message: `Start ${options.agent} session now?`,
-            default: false,
-          },
-        ]),
-      );
-      if (answer.startNow) {
-        console.log(chalk.cyan(`Launching ${options.agent} via ai-start.sh...`));
-        const startScript = path.join(persistencyPath, "ai-start.sh");
-        await (await import("execa")).execa(startScript, {
-          stdio: "inherit",
-        });
-      }
-    } catch (error) {
-      console.warn(
-        chalk.yellow(
-          `Unable to offer start session prompt: ${String(error)}`,
-        ),
-      );
-    }
+  if (options.intakeNotes.length) {
+    console.log(chalk.green("Supplemental notes captured in the brief."));
   }
+
+  const startScriptPath = path.join(persistencyPath, DEFAULT_START_SCRIPT);
+  const upsertScriptPath = path.join(persistencyPath, DEFAULT_UPSERT_SCRIPT);
+  if (options.startSession) {
+    console.log(
+      chalk.yellow(
+        "Auto-launch has been removed; run the prepared scripts manually.",
+      ),
+    );
+  }
+  console.log(
+    chalk.cyan(
+      `Run ${startScriptPath} for an interactive agent session with the migration context.`,
+    ),
+  );
+  console.log(
+    chalk.cyan(
+      `Run ${upsertScriptPath} to stream the upsert prompt in a one-shot session.`,
+    ),
+  );
 
   process.exitCode = EXIT_CODES.SUCCESS;
 }

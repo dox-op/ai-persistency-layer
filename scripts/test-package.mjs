@@ -1,6 +1,6 @@
 import { exec } from "node:child_process";
 import { promisify } from "node:util";
-import { mkdtemp, rm, access, readFile } from "node:fs/promises";
+import { mkdtemp, rm, access, readFile, mkdir, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 
@@ -17,13 +17,13 @@ async function fileExists(filePath) {
 
 async function ensureDistTemplates() {
   const requiredFiles = [
-    "dist/lib/templates/bootstrap.mdc",
-    "dist/lib/templates/functional/foundation.mdc",
-    "dist/lib/templates/technical/foundation.mdc",
-    "dist/lib/templates/ai-meta/foundation.mdc",
-    "dist/lib/templates/ai-meta/legacy-import.mdc",
-    "dist/lib/templates/anti-drift/check-stale.ts.txt",
-    "dist/lib/templates/anti-drift/refresh-layer.ts.txt"
+    "dist/lib/knowledge-base/bootstrap.mdc",
+    "dist/lib/knowledge-base/functional/foundation.mdc",
+    "dist/lib/knowledge-base/technical/foundation.mdc",
+    "dist/lib/knowledge-base/ai-meta/foundation.mdc",
+    "dist/lib/knowledge-base/ai-meta/migration-brief.mdc",
+    "dist/lib/resources/anti-drift/check-stale.ts.int",
+    "dist/lib/resources/anti-drift/refresh-layer.ts.int"
   ];
 
   const missing = [];
@@ -47,6 +47,22 @@ async function ensureCliRuns() {
     await run("git config user.name Test User", { cwd: tmpDir });
     await run("git commit --allow-empty -m initial", { cwd: tmpDir });
 
+    const layerRoot = path.join(tmpDir, "custom-ai");
+    await mkdir(path.join(layerRoot, "functional"), { recursive: true });
+    await mkdir(path.join(layerRoot, "technical"), { recursive: true });
+    await mkdir(path.join(layerRoot, "ai-meta"), { recursive: true });
+    await mkdir(path.join(layerRoot, "archive"), { recursive: true });
+    await writeFile(
+      path.join(layerRoot, "functional", "legacy-note.mdc"),
+      "# Legacy functional note\n\nOriginal content that must be preserved.",
+      "utf8",
+    );
+    await writeFile(
+      path.join(layerRoot, "ai-bootstrap.mdc"),
+      "# Existing bootstrap\n\n- archive/2022-snapshots",
+      "utf8",
+    );
+
     const command = [
       "node",
       "./dist/cli.js",
@@ -64,6 +80,8 @@ async function ensureCliRuns() {
       "node",
       "--install-method",
       "skip",
+      "--intake-notes",
+      "Legacy-CSV-export=./data/users.csv",
       "--non-interactive",
       "--yes",
       "--write-config"
@@ -85,10 +103,15 @@ async function ensureCliRuns() {
 
     const expectedOutputs = [
       path.join(tmpDir, "custom-ai", "functional", "foundation.mdc"),
+      path.join(tmpDir, "custom-ai", "functional", "index.mdc"),
+      path.join(tmpDir, "custom-ai", "functional", "legacy-note.mdc"),
       path.join(tmpDir, "custom-ai", "technical", "foundation.mdc"),
+      path.join(tmpDir, "custom-ai", "technical", "index.mdc"),
       path.join(tmpDir, "custom-ai", "ai-meta", "foundation.mdc"),
-      path.join(tmpDir, "custom-ai", "ai-meta", "legacy-import.mdc"),
+      path.join(tmpDir, "custom-ai", "ai-meta", "index.mdc"),
+      path.join(tmpDir, "custom-ai", "ai-meta", "migration-brief.mdc"),
       path.join(tmpDir, "custom-ai", "ai-bootstrap.mdc"),
+      path.join(tmpDir, "persistency.upsert.prompt.mdc"),
       metadataPath,
       pointerPath
     ];
@@ -97,6 +120,14 @@ async function ensureCliRuns() {
       if (!(await fileExists(file))) {
         throw new Error(`Expected file not generated: ${file}`);
       }
+    }
+
+    const legacyContent = await readFile(
+      path.join(tmpDir, "custom-ai", "functional", "legacy-note.mdc"),
+      "utf8",
+    );
+    if (!legacyContent.includes("Original content that must be preserved.")) {
+      throw new Error("Legacy functional note was unexpectedly modified.");
     }
 
     const snapshotsDir = path.join(tmpDir, "custom-ai", "technical", "snapshots");
@@ -109,6 +140,31 @@ async function ensureCliRuns() {
       throw new Error(
         `Expected persistency pointer to equal "custom-ai" but received "${pointerContents}"`,
       );
+    }
+
+    const brief = await readFile(
+      path.join(tmpDir, "custom-ai", "ai-meta", "migration-brief.mdc"),
+      "utf8",
+    );
+    if (!brief.includes("Legacy-CSV-export=./data/users.csv")) {
+      throw new Error("Migration brief does not include supplemental notes.");
+    }
+    if (!brief.includes("archive")) {
+      throw new Error("Migration brief did not mention the extra archive directory.");
+    }
+
+    const upsertPrompt = await readFile(
+      path.join(tmpDir, "persistency.upsert.prompt.mdc"),
+      "utf8",
+    );
+    if (!upsertPrompt.includes("custom-ai/ai-meta/migration-brief.mdc")) {
+      throw new Error("Upsert prompt did not reference the migration brief path.");
+    }
+    if (!upsertPrompt.includes("custom-ai/archive")) {
+      throw new Error("Upsert prompt did not reference the existing archive directory.");
+    }
+    if (!upsertPrompt.includes("Legacy-CSV-export=./data/users.csv")) {
+      throw new Error("Upsert prompt is missing supplemental notes.");
     }
 
     const nonInteractiveCommand = [

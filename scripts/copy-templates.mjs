@@ -4,8 +4,10 @@ import { fileURLToPath } from "node:url";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(here, "..");
-const sourceDir = path.join(root, "src", "lib", "templates");
-const targetDir = path.join(root, "dist", "lib", "templates");
+const knowledgeSource = path.join(root, "src", "lib", "knowledge-base");
+const knowledgeTarget = path.join(root, "dist", "lib", "knowledge-base");
+const resourcesSource = path.join(root, "src", "lib", "resources");
+const resourcesTarget = path.join(root, "dist", "lib", "resources");
 
 async function copyRecursive(src, dest) {
   const entryStats = await stat(src);
@@ -25,9 +27,16 @@ async function copyRecursive(src, dest) {
   }
 }
 
+async function syncDir(src, dest) {
+  await rm(dest, { recursive: true, force: true });
+  await copyRecursive(src, dest);
+}
+
 async function main() {
-  await rm(targetDir, { recursive: true, force: true });
-  await copyRecursive(sourceDir, targetDir);
+  await Promise.all([
+    syncDir(knowledgeSource, knowledgeTarget),
+    syncDir(resourcesSource, resourcesTarget),
+  ]);
 }
 
 main().catch((error) => {

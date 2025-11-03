@@ -1,0 +1,15 @@
+# AI Meta Summary Index
+
+> Agents: maintain this inventory so future sessions know where prompts, guardrails, and operating checklists live.
+
+## Roles & Playbooks
+
+- _(Enumerate the agent roles and link to their `.mdc` guides.)_
+
+## Prompt Catalogue
+
+- _(List reusable prompt templates and when to apply them.)_
+
+## Session Hygiene
+
+- _(Track procedures for logging, drift checks, and reconciliation loops.)_

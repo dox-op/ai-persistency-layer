@@ -9,8 +9,10 @@ The tool mirrors the behaviour of the original `init-persistency-layer.sh` scrip
 - Interactive prompts via Inquirer or fully headless operation with `--non-interactive`.
 - Detects, installs, or updates Codex, Claude, or Gemini CLIs using `execa`.
 - Authenticates by checking standard environment variables and credential files (see “Authentication Requirements”).
-- Generates deterministic `.mdc` domain foundations (functional, technical, AI-meta) and bootstrap content.
-- Creates `ai-start.sh`, `persistency.config.env`, optional `_bootstrap.log`, and anti-drift scripts.
+- Generates knowledge-base scaffolding (bootstrap + per-domain foundations and indexes) from `src/lib/knowledge-base`.
+- Creates `ai-start.sh`, `ai-upsert.sh`, `persistency.config.env`, optional `_bootstrap.log`, and anti-drift scripts sourced from `src/lib/resources`.
+- Preserves the existing `ai/` layer and emits `ai-meta/migration-brief.mdc` so an agent can reconcile legacy and new rules.
+- Generates a versioned upsert prompt (`persistency.upsert.prompt.mdc`) outside the layer so the chosen agent can apply changes consistently.
 - Records the chosen truth branch commit and freshness metrics.
 
 ## Installation
@@ -40,11 +42,12 @@ ai-persistency-layer [options]
 | `--prev-layer <path>` | Import a previous persistency layer. |
 | `--prod-branch <branch>` | Truth branch (defaults to current). |
 | `--agent <codex|claude|gemini>` | Target AI agent CLI. |
-| `--ai-cmd <cmd>` | Explicit agent command/binary. |
+| `--ai-cmd <cmd>` | Explicit agent command/binary (override PATH auto-detection). |
 | `--install-method <pnpm|npm|brew|pipx|skip>` | Preferred installation strategy. |
 | `--default-model <string>` | Default model identifier. |
 | `--write-config` | Write `persistency.config.env` and anti-drift scripts. |
 | `--asset <path>` | Extra asset to copy into the layer (repeatable). |
+| `--intake-notes <text>` | Supplemental notes or document references injected into the migration brief. |
 | `--non-interactive` | Fail instead of prompting for missing inputs. |
 | `--yes` | Auto-confirm prompts (implies `--write-config`). |
 | `--force` | Overwrite existing files. |
@@ -123,6 +126,16 @@ When `--write-config` is supplied, the CLI generates:
 
 The CLI does not replace these feedback loops—it supplies the scaffolding that downstream processes must keep in sync.
 
+## Migration Workflow
+
+- The CLI refuses to run if the target persistency directory is missing (protects greenfield projects).
+- When an existing layer is detected you must confirm the agent-assisted migration; no files are deleted or regenerated blindly.
+- A migration brief is written to `ai-meta/migration-brief.mdc`, combining legacy sources, the enforced knowledge base rules (English-only, tri-domain separation, per-domain indexes), and any supplemental notes you supplied via `--intake-notes` or the shell script.
+- The CLI inspects existing directories before writing anything, flags additional folders (referenced vs non-referenced in the legacy bootstrap), and stores the outcome inside both the migration brief and the new `persistency.upsert.prompt.mdc`.
+- Domain indexes (`functional/index.mdc`, `technical/index.mdc`, `ai-meta/index.mdc`) are created on first run and are expected to be maintained by agents afterwards.
+- Use `ai-start.sh` (or let the CLI launch it) to start the chosen agent, review the brief, and reconcile the layer.
+- If you accept the “start migration session now” prompt, we launch `ai-start.sh` with the prepared environment and remind you to paste the content of `persistency.upsert.prompt.mdc` as the opening instruction.
+
 ### Handling Drift and Scale
 
 This tool is not a silver bullet for AI-agent adoption; treat the suggestions below as starting points to tailor to your team:
@@ -137,17 +150,24 @@ This tool is not a silver bullet for AI-agent adoption; treat the suggestions be
 - `_bootstrap.log` (when `--log-history` is used) stores chronological activity.
 - `.persistency-meta.json` tracks last refresh, truth branch commit, and freshness metrics.
 - `.persistency-path` (at the repository root) stores the directory that contains the AI layer for future executions.
+- `ai-meta/migration-brief.mdc` summarises the latest migration instructions for the agent.
+- `persistency.upsert.prompt.mdc` (project root) captures the ready-to-run prompt for the selected agent, including supplemental notes and directory analysis.
 
 ## Start Script
 
-`ai-start.sh` exports the tri-domain paths (`PROJECT_PERSISTENCY_FUNCTIONAL`, `PROJECT_PERSISTENCY_TECHNICAL`, `PROJECT_PERSISTENCY_AI_META`) and then execs the selected AI CLI, ensuring sessions always load the correct context.
+`ai-start.sh` exports the tri-domain paths (`PROJECT_PERSISTENCY_FUNCTIONAL`, `PROJECT_PERSISTENCY_TECHNICAL`, `PROJECT_PERSISTENCY_AI_META`), loads `persistency.config.env` when present, and streams `persistency.upsert.prompt.mdc` (optionally prefixed with `$TITLE`) into the selected AI CLI via stdin before handing control back to you. The CLI no longer auto-launches the agent; run the script yourself whenever you’re ready to review the migration brief with your copilot.
+
+## Upsert Script
+
+`ai-upsert.sh` streams the same prompt and exits once the agent finishes processing. Use it for one-shot alignments or CI jobs where you want the agent to ingest the migration instructions and report back in a single pass. Both scripts honour `AI_CMD` overrides from `persistency.config.env` and forward additional arguments to the agent CLI.
 
 ## FAQ
 
-**Che cosa sono gli “anti-drift scripts”?**  
-Quando esegui il CLI con `--write-config`, vengono generati due script in `scripts/ai/`:
-- `check-stale.ts` legge `.persistency-meta.json` e segnala (exit code ≠ 0) se il layer ha superato gli SLO di freschezza predefiniti (7 giorni o 200 commit). È pensato per CI/cron.
-- `refresh-layer.ts` rilancia automaticamente il bootstrap (`ai-persistency-layer --yes …`), così puoi pianificare rigenerazioni periodiche o reagire agli avvisi di drift.
+**What are the "anti-drift scripts"?**  
+When you run the CLI with `--write-config`, it generates two scripts under `scripts/ai/`:
+- `check-stale.ts` reads `.persistency-meta.json` and exits with a non-zero code if the layer breaches the default freshness SLO (7 days or 200 commits). It is designed for CI or scheduled tasks.
+- `refresh-layer.ts` re-runs the bootstrap (`ai-persistency-layer --yes ...`), allowing you to schedule periodic regenerations or respond to drift alerts.
 
-**Dove salvo le impostazioni per mantenere il layer idempotente?**  
-Nel bootstrap viene creato `persistency.config.env` nella radice dello strato: contiene nome progetto, path di riferimento, comando dell’agent e i percorsi relativi dei tre domini. Puoi arricchirlo con variabili tue o script di orchestrazione; il CLI lo rigenera/aggiorna ad ogni corsa mantenendo la configurazione all’interno del layer stesso.
+**Where do I store the settings that keep the layer idempotent?**  
+The bootstrap creates `persistency.config.env` at the root of the layer. It captures the project name, reference paths, agent command, and the relative paths for the three domains. Extend it with your own variables or orchestration scripts if needed; the CLI regenerates or updates it on every run while keeping the configuration within the layer.
+> If you skip `--ai-cmd`, the CLI searches the current `PATH` for the usual binary names (e.g. `codex`, `claude`, `gemini`). Specify a full path only when the executable lives elsewhere.

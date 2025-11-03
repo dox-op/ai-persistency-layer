@@ -24,8 +24,10 @@ This bootstrap describes how to interact with the repository using the selected 
 
 - Always load this directory when starting an AI session.
 - Keep the tri-domain separation: `functional/`, `technical/`, `ai-meta/`.
+- Maintain every `.mdc` and `.md` file in English so knowledge stays consistent across teams.
+- Update the `index.mdc` summary in each domain whenever you add or deprecate knowledge assets.
 - Store raw artefacts (CSV, Confluence exports, diagrams) under `ai-meta/assets/`.
-- Review `ai-meta/legacy-import.mdc` first if it exists (legacy knowledge to migrate).
+- Review `ai-meta/migration-brief.mdc` first if it exists (legacy knowledge to migrate).
 
 ## Workflow
 

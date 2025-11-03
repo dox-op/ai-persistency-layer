@@ -11,6 +11,9 @@
 1. Every feature or task must trace back to a functional objective in this directory.
 2. When new functional insights emerge, create or update the relevant `.mdc` entry immediately.
 3. Link technical counterparts in `../technical/` so the team can move between intent and implementation.
+4. Keep `functional/index.mdc` current so contributors can discover existing knowledge at a glance.
+5. Write every `.mdc` and `.md` file in English to keep the shared context accessible.
+6. Curate a taxonomy of functional problems so future sessions can map work to recurring themes.
 
 ## Recommended Structure
 
@@ -18,5 +21,6 @@
 - `functional/personas/` → personas, actors, their goals.
 - `functional/workflows/` → user flows, BPMN diagrams, critical scenarios.
 - `functional/policies/` → business rules, regulatory constraints, SLAs.
+- `functional/taxonomy/` → canonical catalogue of business capabilities and recurring problem statements.
 
 > Guidance for agents: preserve functional intent when suggesting changes. Never introduce a feature without mapping it to a documented functional requirement here.

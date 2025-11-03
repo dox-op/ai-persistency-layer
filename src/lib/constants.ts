@@ -5,8 +5,10 @@ export const DEFAULT_LOG_FILE = "_bootstrap.log";
 export const DEFAULT_BOOTSTRAP_FILE = "ai-bootstrap.mdc";
 export const DEFAULT_CONFIG_FILE = "persistency.config.env";
 export const DEFAULT_START_SCRIPT = "ai-start.sh";
+export const DEFAULT_UPSERT_SCRIPT = "ai-upsert.sh";
 export const DEFAULT_ANTI_DRIFT_SLO_DAYS = 7;
 export const DEFAULT_ANTI_DRIFT_SLO_COMMITS = 200;
+export const UPSERT_PROMPT_FILE = "persistency.upsert.prompt.mdc";
 
 export const SUPPORTED_AGENTS = ["codex", "claude", "gemini"] as const;
 export type SupportedAgent = (typeof SUPPORTED_AGENTS)[number];
@@ -32,6 +34,7 @@ export interface PersistencyMetadata {
   installMethod?: string;
   assets?: string[];
   legacySources?: string[];
+  intakeNotes?: string;
   freshness?: {
     daysSinceUpdate: number;
     commitsSinceTruth: number;

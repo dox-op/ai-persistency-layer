@@ -13,6 +13,7 @@ export interface CliFlags {
   defaultModel?: string;
   writeConfig: boolean;
   assets: string[];
+  intakeNotes?: string;
   nonInteractive: boolean;
   yes: boolean;
   force: boolean;
@@ -27,6 +28,7 @@ export interface ResolvedOptions extends CliFlags {
   prodBranch: string;
   agent: SupportedAgent;
   aiCmd: string;
+  intakeNotes: string;
 }
 
 export interface AntiDriftMetrics {

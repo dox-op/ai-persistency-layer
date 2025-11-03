@@ -1,0 +1,42 @@
+# Persistency Layer Upsert Prompt – {{projectName}}
+
+## Mission For {{agent}}
+
+- Operate inside the existing persistency directory at `{{persistencyDir}}`.
+- Use the migration brief at `{{migrationBrief}}` as the canonical status checkpoint.
+- Preserve existing knowledge: refine files in-place rather than regenerating from scratch.
+
+## Canonical Knowledge Base Layout
+
+- Standard domains introduced by this dependency:
+{{canonicalPaths}}
+- Additional directories currently present:
+{{existingExtras}}
+- Directories already referenced by the legacy bootstrap:
+{{referencedExtras}}
+- Directories not referenced by the legacy bootstrap (validate necessity or reindex):
+{{unreferencedExtras}}
+- Canonical domains missing prior to this migration (expect newly created placeholders in this run):
+{{missingCanonical}}
+
+> Guideline: Additional directories are acceptable when they are indexed and described in `ai-bootstrap.mdc`. If you keep them, update the bootstrap to point to their purpose and owners.
+
+## Required Guardrails
+
+- Keep all `.mdc` / `.md` files in English.
+- Maintain recursive enrichment: every new insight must update the knowledge base.
+- Ensure domain indexes (`functional/index.mdc`, `technical/index.mdc`, `ai-meta/index.mdc`) stay aligned with on-disk content.
+- Document any additional directories or assets inside the bootstrap so future agents can navigate them.
+- Preserve or update `ai-start.sh` to keep the agent launcher stable.
+
+## Tasks
+
+1. Review the existing layer along with the migration brief and supplemental notes below.
+2. Apply the knowledge-base rules so functional, technical, and AI-meta content lands in the correct domain.
+3. Integrate supplemental inputs, citing their origin in the relevant index files.
+4. Update `ai-bootstrap.mdc` to describe every directory left in the layer, including any non-standard ones.
+5. Leave a short summary of the migration outcome in `_bootstrap.log` or the migration brief (changes applied, remaining gaps, follow-ups).
+
+## Supplemental Inputs
+
+{{intakeNotes}}

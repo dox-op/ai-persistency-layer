@@ -52,11 +52,17 @@ ai-persistency-layer --agent claude --write-config --yes
 
 Use `--non-interactive` for automation and `--install-method` to control CLI installation (`pnpm`, `npm`, `pipx`, `brew`, or `skip`).
 
+> Tip: you can script the CLI invocation yourself (see README for flag reference) to mirror an automated pipeline. Every run will emit `persistency.upsert.prompt.mdc` in the project root for the follow-up AI session.
+
+The CLI preserves any existing `ai/` layer. If the directory (or the custom `--persistency-dir`) does not exist, execution stops after input collection so the installer can bootstrap the layer manually first.
+
 ## 5. Verifying the Setup
 
-1. Check that the `ai/` directory (or custom `--persistency-dir`) now contains the three domain folders: `functional/`, `technical/`, `ai-meta/`.
-2. Ensure `ai-start.sh` is executable: `./ai/ai-start.sh --help`.
-3. Run `scripts/ai/check-stale.ts` (if generated) to confirm freshness scripts work.
+1. Check that the `ai/` directory (or custom `--persistency-dir`) contains the three domain folders plus their `index.mdc` summary files.
+2. Review `ai-meta/migration-brief.mdc`; it captures the migration instructions, supplemental notes, and the truth commit to reconcile.
+3. Inspect `persistency.upsert.prompt.mdc` in the project root; `ai/ai-start.sh` and `ai/ai-upsert.sh` will stream it into the agent when you run them manually.
+4. Ensure `ai-start.sh` and `ai-upsert.sh` are executable: `./ai/ai-start.sh --help`.
+5. Run `scripts/ai/check-stale.ts` (if generated) to confirm freshness scripts work.
 
 ## 6. Need to customize?
 
