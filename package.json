@@ -1,6 +1,6 @@
 {
   "name": "@dox-op/ai-persistency-layer",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Idempotently bootstrap or refresh an AI Persistency Layer for software projects.",
   "type": "module",
   "bin": {

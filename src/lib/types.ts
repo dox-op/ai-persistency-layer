@@ -19,7 +19,6 @@ export interface CliFlags {
   force: boolean;
   keepBackup: boolean;
   logHistory: boolean;
-  startSession: boolean;
 }
 
 export interface ResolvedOptions extends CliFlags {

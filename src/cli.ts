@@ -190,7 +190,6 @@ function buildProgram(): Command {
     .option("--force", "Overwrite existing files.", false)
     .option("--keep-backup", "Retain a backup of the existing persistency layer.", false)
     .option("--log-history", "Append to _bootstrap.log with refresh details.", false)
-    .option("--start-session", "Immediately start an AI session after bootstrap.", false)
     .allowUnknownOption(false)
     .showHelpAfterError();
   return program;
@@ -221,7 +220,6 @@ async function run(): Promise<void> {
     force: false,
     keepBackup: false,
     logHistory: false,
-    startSession: false,
   };
   const flags: CliFlags = {
     ...defaults,
@@ -476,13 +474,6 @@ async function run(): Promise<void> {
 
   const startScriptPath = path.join(persistencyPath, DEFAULT_START_SCRIPT);
   const upsertScriptPath = path.join(persistencyPath, DEFAULT_UPSERT_SCRIPT);
-  if (options.startSession) {
-    console.log(
-      chalk.yellow(
-        "Auto-launch has been removed; run the prepared scripts manually.",
-      ),
-    );
-  }
   console.log(
     chalk.cyan(
       `Run ${startScriptPath} for an interactive agent session with the migration context.`,
