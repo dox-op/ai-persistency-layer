@@ -1,4 +1,6 @@
 export const DEFAULT_PERSISTENCY_DIR = "ai";
+export const PERSISTENCY_METADATA_FILE = ".persistency-meta.json";
+export const PERSISTENCY_POINTER_FILE = ".persistency-path";
 export const DEFAULT_LOG_FILE = "_bootstrap.log";
 export const DEFAULT_BOOTSTRAP_FILE = "ai-bootstrap.mdc";
 export const DEFAULT_CONFIG_FILE = "persistency.config.env";

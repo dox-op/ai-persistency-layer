@@ -53,6 +53,14 @@ ai-persistency-layer [options]
 | `--start-session` | Launch the agent immediately after bootstrapping. |
 | `-h, --help` | Display help. |
 
+### Persistency directory discovery
+
+The CLI looks for metadata in the `ai/` folder by default. If the
+`.persistency-meta.json` file is not present there, you will be prompted once to
+confirm where the existing layer lives. The selected directory is then recorded
+in the project root via `.persistency-path`, allowing subsequent runs to reuse
+the configured location without prompting again.
+
 ## Exit Codes
 
 | Code | Meaning |
@@ -128,6 +136,7 @@ This tool is not a silver bullet for AI-agent adoption; treat the suggestions be
 
 - `_bootstrap.log` (when `--log-history` is used) stores chronological activity.
 - `.persistency-meta.json` tracks last refresh, snapshot commit, and freshness metrics.
+- `.persistency-path` (at the repository root) stores the directory that contains the AI layer for future executions.
 
 ## Start Script
 

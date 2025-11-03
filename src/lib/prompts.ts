@@ -106,3 +106,21 @@ export async function promptForMissingOptions(flags: CliFlags): Promise<Resolved
     assets: flags.assets.length ? flags.assets : answers.assets ?? [],
   };
 }
+
+export async function promptForPersistencyDir(
+  defaultDir: string,
+): Promise<string> {
+  const answer = await inquirer.prompt<{ persistencyDir?: string }>([
+    {
+      name: "persistencyDir",
+      type: "input",
+      message: "Where is the existing persistency layer?",
+      default: defaultDir,
+      filter: (value: string) => value.trim(),
+    },
+  ]);
+
+  return answer.persistencyDir && answer.persistencyDir.length
+    ? answer.persistencyDir
+    : defaultDir;
+}

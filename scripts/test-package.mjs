@@ -1,6 +1,6 @@
 import { exec } from "node:child_process";
 import { promisify } from "node:util";
-import { mkdtemp, rm, access } from "node:fs/promises";
+import { mkdtemp, rm, access, readFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 
@@ -55,7 +55,7 @@ async function ensureCliRuns() {
       "--project-path",
       tmpDir,
       "--persistency-dir",
-      "ai",
+      "custom-ai",
       "--agent",
       "codex",
       "--prod-branch",
@@ -80,13 +80,18 @@ async function ensureCliRuns() {
       }
     });
 
+    const metadataPath = path.join(tmpDir, "custom-ai", ".persistency-meta.json");
+    const pointerPath = path.join(tmpDir, ".persistency-path");
+
     const expectedOutputs = [
-      path.join(tmpDir, "ai", "functional", "foundation.mdc"),
-      path.join(tmpDir, "ai", "technical", "foundation.mdc"),
-      path.join(tmpDir, "ai", "ai-meta", "foundation.mdc"),
-      path.join(tmpDir, "ai", "ai-meta", "legacy-import.mdc"),
-      path.join(tmpDir, "ai", "technical", "snapshots"),
-      path.join(tmpDir, "ai", "ai-bootstrap.mdc")
+      path.join(tmpDir, "custom-ai", "functional", "foundation.mdc"),
+      path.join(tmpDir, "custom-ai", "technical", "foundation.mdc"),
+      path.join(tmpDir, "custom-ai", "ai-meta", "foundation.mdc"),
+      path.join(tmpDir, "custom-ai", "ai-meta", "legacy-import.mdc"),
+      path.join(tmpDir, "custom-ai", "technical", "snapshots"),
+      path.join(tmpDir, "custom-ai", "ai-bootstrap.mdc"),
+      metadataPath,
+      pointerPath
     ];
 
     for (const file of expectedOutputs) {
@@ -94,6 +99,39 @@ async function ensureCliRuns() {
         throw new Error(`Expected file not generated: ${file}`);
       }
     }
+
+    const pointerContents = (await readFile(pointerPath, "utf8")).trim();
+    if (pointerContents !== "custom-ai") {
+      throw new Error(
+        `Expected persistency pointer to equal "custom-ai" but received "${pointerContents}"`,
+      );
+    }
+
+    const nonInteractiveCommand = [
+      "node",
+      "./dist/cli.js",
+      "--project-path",
+      tmpDir,
+      "--non-interactive",
+      "--yes",
+      "--ai-cmd",
+      "node",
+      "--install-method",
+      "skip",
+      "--write-config",
+      "--force"
+    ].join(" ");
+
+    await run(nonInteractiveCommand, {
+      cwd: process.cwd(),
+      env: {
+        ...process.env,
+        GIT_AUTHOR_NAME: "Test",
+        GIT_AUTHOR_EMAIL: "tester@example.com",
+        GIT_COMMITTER_NAME: "Test",
+        GIT_COMMITTER_EMAIL: "tester@example.com"
+      }
+    });
   } finally {
     await rm(tmpDir, { recursive: true, force: true });
   }
