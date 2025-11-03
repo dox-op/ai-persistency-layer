@@ -11,6 +11,8 @@ import {
   DEFAULT_START_SCRIPT,
   DEFAULT_ANTI_DRIFT_SLO_DAYS,
   DEFAULT_ANTI_DRIFT_SLO_COMMITS,
+  PERSISTENCY_METADATA_FILE,
+  PERSISTENCY_POINTER_FILE,
   type PersistencyMetadata,
 } from "./constants.js";
 import type { ResolvedOptions, AntiDriftMetrics } from "./types.js";
@@ -243,11 +245,19 @@ export async function writeLogEntry(
 }
 
 export async function writeMetadata(
+  projectPath: string,
   persistencyPath: string,
   metadata: PersistencyMetadata,
 ): Promise<void> {
-  const metaPath = path.join(persistencyPath, ".persistency-meta.json");
+  const metaPath = path.join(persistencyPath, PERSISTENCY_METADATA_FILE);
   await safeWriteFile(metaPath, JSON.stringify(metadata, null, 2), true);
+
+  const pointerValue =
+    metadata.persistencyDir && metadata.persistencyDir.length
+      ? metadata.persistencyDir
+      : path.relative(projectPath, persistencyPath);
+  const pointerPath = path.join(projectPath, PERSISTENCY_POINTER_FILE);
+  await fs.writeFile(pointerPath, `${pointerValue}\n`, "utf8");
 }
 
 export async function ensureBaseLayout(persistencyPath: string): Promise<void> {

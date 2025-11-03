@@ -11,10 +11,15 @@ import {
   DEFAULT_LOG_FILE,
   EXIT_CODES,
   SUPPORTED_AGENTS,
+  PERSISTENCY_METADATA_FILE,
+  PERSISTENCY_POINTER_FILE,
   type PersistencyMetadata,
 } from "./lib/constants.js";
 import type { CliFlags, ResolvedOptions } from "./lib/types.js";
-import { promptForMissingOptions } from "./lib/prompts.js";
+import {
+  promptForMissingOptions,
+  promptForPersistencyDir,
+} from "./lib/prompts.js";
 import {
   ensureAgentCli,
   ensureAgentAuth,
@@ -50,6 +55,89 @@ async function readExistingMetadata(metaPath: string): Promise<PersistencyMetada
   }
 }
 
+async function readPersistencyPointer(
+  projectPath: string,
+): Promise<string | undefined> {
+  try {
+    const raw = await fs.readFile(
+      path.join(projectPath, PERSISTENCY_POINTER_FILE),
+      "utf8",
+    );
+    const trimmed = raw.trim();
+    return trimmed.length ? trimmed : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+interface MetadataResolution {
+  flags: CliFlags;
+  metadataFound: boolean;
+  projectPath: string;
+}
+
+async function applyMetadataDefaults(flags: CliFlags): Promise<MetadataResolution> {
+  const baseProjectPath = path.resolve(flags.projectPath ?? process.cwd());
+  const defaultPersistencyDir = flags.persistencyDir ?? DEFAULT_PERSISTENCY_DIR;
+  const pointerDir = flags.persistencyDirProvided
+    ? undefined
+    : await readPersistencyPointer(baseProjectPath);
+  const candidatePersistencyDir = flags.persistencyDirProvided
+    ? defaultPersistencyDir
+    : pointerDir ?? defaultPersistencyDir;
+  const candidatePersistencyPath = path.isAbsolute(candidatePersistencyDir)
+    ? candidatePersistencyDir
+    : path.join(baseProjectPath, candidatePersistencyDir);
+  const directMetaPath = path.join(baseProjectPath, PERSISTENCY_METADATA_FILE);
+  const metadataCandidates = [
+    path.join(candidatePersistencyPath, PERSISTENCY_METADATA_FILE),
+    directMetaPath,
+  ];
+
+  let metadata: PersistencyMetadata | undefined;
+  for (const candidate of metadataCandidates) {
+    metadata = await readExistingMetadata(candidate);
+    if (metadata) break;
+  }
+
+  const nextFlags: CliFlags = {
+    ...flags,
+    persistencyDir: metadata?.persistencyDir ?? candidatePersistencyDir,
+  };
+
+  if (metadata) {
+    nextFlags.projectName = nextFlags.projectName ?? metadata.projectName;
+    nextFlags.projectPath = nextFlags.projectPath ?? metadata.projectPath;
+    nextFlags.prodBranch = nextFlags.prodBranch ?? metadata.prodBranch;
+    nextFlags.agent = nextFlags.agent ?? metadata.agent;
+    nextFlags.defaultModel =
+      nextFlags.defaultModel ?? metadata.defaultModel;
+
+    if (!nextFlags.installMethod) {
+      const installMethod = metadata.installMethod;
+      if (
+        installMethod === "pnpm" ||
+        installMethod === "npm" ||
+        installMethod === "brew" ||
+        installMethod === "pipx" ||
+        installMethod === "skip"
+      ) {
+        nextFlags.installMethod = installMethod;
+      }
+    }
+  }
+
+  if (!Array.isArray(nextFlags.assets)) {
+    nextFlags.assets = [];
+  }
+
+  return {
+    flags: nextFlags,
+    metadataFound: Boolean(metadata),
+    projectPath: baseProjectPath,
+  };
+}
+
 function buildProgram(): Command {
   const program = new Command("ai-persistency-layer");
   program
@@ -59,7 +147,6 @@ function buildProgram(): Command {
     .option(
       "--persistency-dir <path>",
       "Directory of the AI persistency layer.",
-      DEFAULT_PERSISTENCY_DIR,
     )
     .option("--prev-layer <path>", "Previous persistency layer to import.")
     .option(
@@ -101,8 +188,14 @@ async function run(): Promise<void> {
   const parsed = program.parse(process.argv);
 
   const rawOpts = parsed.opts<CliFlags>();
+  const persistencyDirSource = typeof parsed.getOptionValueSource === "function"
+    ? parsed.getOptionValueSource("persistencyDir")
+    : undefined;
+  const persistencyDirProvided =
+    persistencyDirSource !== undefined && persistencyDirSource !== "default";
   const defaults: CliFlags = {
     persistencyDir: DEFAULT_PERSISTENCY_DIR,
+    persistencyDirProvided: false,
     assets: [] as string[],
     writeConfig: false,
     nonInteractive: false,
@@ -115,10 +208,24 @@ async function run(): Promise<void> {
   const flags: CliFlags = {
     ...defaults,
     ...rawOpts,
+    persistencyDirProvided,
   };
+  let { flags: hydratedFlags, metadataFound } = await applyMetadataDefaults(flags);
+
+  if (!metadataFound && !hydratedFlags.nonInteractive) {
+    const chosenDir = await promptForPersistencyDir(
+      hydratedFlags.persistencyDir ?? DEFAULT_PERSISTENCY_DIR,
+    );
+    ({ flags: hydratedFlags, metadataFound } = await applyMetadataDefaults({
+      ...hydratedFlags,
+      persistencyDir: chosenDir,
+      persistencyDirProvided: true,
+    }));
+  }
+
   const options = await promptForMissingOptions({
-    ...flags,
-    assets: flags.assets ?? [],
+    ...hydratedFlags,
+    assets: hydratedFlags.assets ?? [],
   });
 
   const projectPath = overrideProjectPath
@@ -137,7 +244,7 @@ async function run(): Promise<void> {
 
   const existingMetadataPath = path.join(
     persistencyPath,
-    ".persistency-meta.json",
+    PERSISTENCY_METADATA_FILE,
   );
   const previousMetadata = await readExistingMetadata(existingMetadataPath);
 
@@ -248,7 +355,7 @@ async function run(): Promise<void> {
     freshness: metrics,
   };
 
-  await writeMetadata(persistencyPath, metadata);
+  await writeMetadata(projectPath, persistencyPath, metadata);
 
   if (options.logHistory) {
     await writeLogEntry(

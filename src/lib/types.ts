@@ -4,6 +4,7 @@ export interface CliFlags {
   projectName?: string;
   projectPath?: string;
   persistencyDir: string;
+  persistencyDirProvided?: boolean;
   prevLayer?: string;
   prodBranch?: string;
   agent?: SupportedAgent;

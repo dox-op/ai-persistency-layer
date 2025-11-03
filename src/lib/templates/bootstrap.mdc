@@ -40,7 +40,7 @@ This bootstrap describes how to interact with the repository using the selected 
 - SLO: refresh every {{sloDays}} day(s) or {{sloCommits}} commit(s) after the truth branch snapshot.
 - Current freshness: {{daysSinceUpdate}} day(s) elapsed, {{commitsSinceTruth}} commit(s) since snapshot.
 - Deterministic snapshot located at `{{snapshotPath}}`.
-- Metrics tracked in `.persistency-meta.json`.
+- Freshness metrics are tracked internally (excluded from AI context files).
 - Optional automation scripts available under `scripts/ai`.
 
 ## Escalation
