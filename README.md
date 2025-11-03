@@ -1,16 +1,17 @@
 # @dox-op/ai-persistency-layer
 
-Bootstrap or refresh an AI Persistency Layer inside an existing Git repository.  
-The tool mirrors the behaviour of the original `init-persistency-layer.sh` script while upgrading it to an idempotent TypeScript/ESM CLI.
+Refresh or reseed an AI Persistency Layer inside an existing Git repository.  
+The tool mirrors the behaviour of the original `init-persistency-layer.sh` script while upgrading it to an idempotent TypeScript/ESM CLI that now requires an existing layer so migrations never start from a blank slate.
 
 ## Features
 
 - Validates execution inside a Git repository (exit code `2` otherwise).
 - Interactive prompts via Inquirer or fully headless operation with `--non-interactive`.
+- Remembers previous runs by reading `.persistency-meta.json` and `.persistency-path`, reusing stored defaults without extra prompts.
 - Detects, installs, or updates Codex, Claude, or Gemini CLIs using `execa`.
 - Authenticates by checking standard environment variables and credential files (see “Authentication Requirements”).
 - Generates knowledge-base scaffolding (bootstrap + per-domain foundations and indexes) from `src/lib/knowledge-base`.
-- Creates `ai-start.sh`, `ai-upsert.sh`, `persistency.config.env`, optional `_bootstrap.log`, and anti-drift scripts sourced from `src/lib/resources`.
+- Always regenerates `ai-start.sh` and `ai-upsert.sh`, and—when run with `--write-config` or `--yes`—also writes `persistency.config.env` plus the anti-drift scripts sourced from `src/lib/resources`.
 - Preserves the existing `ai/` layer and emits `ai-meta/migration-brief.mdc` so an agent can reconcile legacy and new rules.
 - Generates a versioned upsert prompt (`persistency.upsert.prompt.mdc`) outside the layer so the chosen agent can apply changes consistently.
 - Records the chosen truth branch commit and freshness metrics.
@@ -53,7 +54,7 @@ ai-persistency-layer [options]
 | `--force` | Overwrite existing files. |
 | `--keep-backup` | Retain the previous layer in `ai-backup/` before regenerating. |
 | `--log-history` | Append refresh details to `_bootstrap.log` (default: off). |
-| `--start-session` | Launch the agent immediately after bootstrapping. |
+| `--start-session` | Legacy flag that now prints a reminder; auto-launch has been removed. |
 | `-h, --help` | Display help. |
 
 ### Persistency directory discovery
@@ -131,10 +132,11 @@ The CLI does not replace these feedback loops—it supplies the scaffolding that
 - The CLI refuses to run if the target persistency directory is missing (protects greenfield projects).
 - When an existing layer is detected you must confirm the agent-assisted migration; no files are deleted or regenerated blindly.
 - A migration brief is written to `ai-meta/migration-brief.mdc`, combining legacy sources, the enforced knowledge base rules (English-only, tri-domain separation, per-domain indexes), and any supplemental notes you supplied via `--intake-notes` or the shell script.
+- Passing `--prev-layer <path>` stages that directory inside `ai-meta/legacy/<timestamp>` and records it as a source to reconcile in the migration brief.
 - The CLI inspects existing directories before writing anything, flags additional folders (referenced vs non-referenced in the legacy bootstrap), and stores the outcome inside both the migration brief and the new `persistency.upsert.prompt.mdc`.
 - Domain indexes (`functional/index.mdc`, `technical/index.mdc`, `ai-meta/index.mdc`) are created on first run and are expected to be maintained by agents afterwards.
-- Use `ai-start.sh` (or let the CLI launch it) to start the chosen agent, review the brief, and reconcile the layer.
-- If you accept the “start migration session now” prompt, we launch `ai-start.sh` with the prepared environment and remind you to paste the content of `persistency.upsert.prompt.mdc` as the opening instruction.
+- Use `ai-start.sh` to start the chosen agent, review the brief, and reconcile the layer.
+- `--start-session` now only prints a reminder; launch `ai-start.sh` yourself when you are ready to review the migration brief with your copilot.
 
 ### Handling Drift and Scale
 
@@ -155,11 +157,11 @@ This tool is not a silver bullet for AI-agent adoption; treat the suggestions be
 
 ## Start Script
 
-`ai-start.sh` exports the tri-domain paths (`PROJECT_PERSISTENCY_FUNCTIONAL`, `PROJECT_PERSISTENCY_TECHNICAL`, `PROJECT_PERSISTENCY_AI_META`), loads `persistency.config.env` when present, and streams `persistency.upsert.prompt.mdc` (optionally prefixed with `$TITLE`) into the selected AI CLI via stdin before handing control back to you. The CLI no longer auto-launches the agent; run the script yourself whenever you’re ready to review the migration brief with your copilot.
+`ai-start.sh` exports the tri-domain paths (`PROJECT_PERSISTENCY_FUNCTIONAL`, `PROJECT_PERSISTENCY_TECHNICAL`, `PROJECT_PERSISTENCY_AI_META`), loads `persistency.config.env` when present, and passes `persistency.upsert.prompt.mdc` (optionally prefixed with `$TITLE`) as the final argument to the selected AI CLI. The script `exec`s the agent, so it ends when the CLI exits. The CLI no longer auto-launches the agent; run the script yourself whenever you’re ready to review the migration brief with your copilot.
 
 ## Upsert Script
 
-`ai-upsert.sh` streams the same prompt and exits once the agent finishes processing. Use it for one-shot alignments or CI jobs where you want the agent to ingest the migration instructions and report back in a single pass. Both scripts honour `AI_CMD` overrides from `persistency.config.env` and forward additional arguments to the agent CLI.
+`ai-upsert.sh` streams the same prompt (passing it as the final argument) and exits once the agent finishes processing. Use it for one-shot alignments or CI jobs where you want the agent to ingest the migration instructions and report back in a single pass. Set `TITLE="My Session"` to prefix the streamed payload with a conversation title. Both scripts honour `AI_CMD` overrides from `persistency.config.env` and forward additional arguments to the agent CLI.
 
 ## FAQ
 

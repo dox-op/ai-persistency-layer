@@ -190,7 +190,11 @@ function buildProgram(): Command {
     .option("--force", "Overwrite existing files.", false)
     .option("--keep-backup", "Retain a backup of the existing persistency layer.", false)
     .option("--log-history", "Append to _bootstrap.log with refresh details.", false)
-    .option("--start-session", "Immediately start an AI session after bootstrap.", false)
+    .option(
+      "--start-session",
+      "Legacy flag that only prints a reminder; auto-launch has been removed.",
+      false,
+    )
     .allowUnknownOption(false)
     .showHelpAfterError();
   return program;
