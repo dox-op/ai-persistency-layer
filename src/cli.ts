@@ -1,7 +1,7 @@
 import path from "node:path";
 import process from "node:process";
 import { promises as fs } from "node:fs";
-import { Command, Option } from "commander";
+import { Command } from "commander";
 import chalk from "chalk";
 import ora from "ora";
 import dayjs from "dayjs";
@@ -17,14 +17,6 @@ import {
   type PersistencyMetadata,
 } from "./lib/constants.js";
 import type { CliFlags, ResolvedOptions } from "./lib/types.js";
-import {
-  promptForMissingOptions,
-  promptForPersistencyDir,
-} from "./lib/prompts.js";
-import {
-  ensureAgentCli,
-  ensureAgentAuth,
-} from "./lib/ai-install.js";
 import {
   ensureGitRepo,
   resolveTruthBranch,
@@ -73,15 +65,6 @@ async function readPersistencyPointer(
   }
 }
 
-async function pathExists(target: string): Promise<boolean> {
-  try {
-    await fs.access(target);
-    return true;
-  } catch {
-    return false;
-  }
-}
-
 interface MetadataResolution {
   flags: CliFlags;
   metadataFound: boolean;
@@ -127,28 +110,60 @@ async function applyMetadataDefaults(flags: CliFlags): Promise<MetadataResolutio
     nextFlags.intakeNotes =
       nextFlags.intakeNotes ?? metadata.intakeNotes;
 
-    if (!nextFlags.installMethod) {
-      const installMethod = metadata.installMethod;
-      if (
-        installMethod === "pnpm" ||
-        installMethod === "npm" ||
-        installMethod === "brew" ||
-        installMethod === "pipx" ||
-        installMethod === "skip"
-      ) {
-        nextFlags.installMethod = installMethod;
-      }
-    }
   }
 
   if (!Array.isArray(nextFlags.assets)) {
     nextFlags.assets = [];
   }
 
+  nextFlags.projectPath = nextFlags.projectPath ?? baseProjectPath;
+
   return {
     flags: nextFlags,
     metadataFound: Boolean(metadata),
     projectPath: baseProjectPath,
+  };
+}
+
+async function inferProjectName(projectPath: string, fallback?: string): Promise<string> {
+  if (fallback && fallback.trim().length) {
+    return fallback.trim();
+  }
+
+  try {
+    const packageJsonPath = path.join(projectPath, "package.json");
+    const contents = await fs.readFile(packageJsonPath, "utf8");
+    const parsed = JSON.parse(contents);
+    if (parsed && typeof parsed.name === "string" && parsed.name.trim().length) {
+      return parsed.name.trim();
+    }
+  } catch {
+    // ignore missing package.json or malformed file
+  }
+
+  return path.basename(projectPath);
+}
+
+async function resolveOptions(flags: CliFlags): Promise<ResolvedOptions> {
+  const projectPath = path.resolve(flags.projectPath ?? process.cwd());
+  const persistencyDir = flags.persistencyDir ?? DEFAULT_PERSISTENCY_DIR;
+  const projectName = await inferProjectName(projectPath, flags.projectName);
+  const agent = flags.agent ?? SUPPORTED_AGENTS[0];
+  const aiCmd =
+    flags.aiCmd && flags.aiCmd.trim().length
+      ? flags.aiCmd.trim()
+      : agent;
+
+  return {
+    ...flags,
+    persistencyDir,
+    projectName,
+    projectPath,
+    prodBranch: flags.prodBranch ?? "",
+    agent,
+    aiCmd,
+    intakeNotes: flags.intakeNotes?.trim() ?? "",
+    assets: flags.assets ?? [],
   };
 }
 
@@ -172,21 +187,12 @@ function buildProgram(): Command {
       `AI agent CLI to use (${SUPPORTED_AGENTS.join(", ")}).`,
     )
     .option("--ai-cmd <cmd>", "Explicit AI CLI command or path.")
-    .addOption(
-      new Option(
-        "--install-method <method>",
-        "Install or update the AI CLI.",
-      ).choices(["pnpm", "npm", "brew", "pipx", "skip"]),
-    )
     .option("--default-model <string>", "Default AI model identifier.")
-    .option("--write-config", "Write persistency.config.env and anti-drift scripts.", false)
     .option("--asset <path>", "Additional asset to include.", collect, [])
     .option(
       "--intake-notes <text>",
       "Comma-separated notes or references to supplemental documentation (CSV exports, Confluence paths, etc.).",
     )
-    .option("--non-interactive", "Fail if required inputs are missing.", false)
-    .option("--yes", "Assume yes for confirmations.", false)
     .option("--force", "Overwrite existing files.", false)
     .option("--keep-backup", "Retain a backup of the existing persistency layer.", false)
     .option("--log-history", "Append to _bootstrap.log with refresh details.", false)
@@ -214,9 +220,6 @@ async function run(): Promise<void> {
     persistencyDir: DEFAULT_PERSISTENCY_DIR,
     persistencyDirProvided: false,
     assets: [] as string[],
-    writeConfig: false,
-    nonInteractive: false,
-    yes: false,
     force: false,
     keepBackup: false,
     logHistory: false,
@@ -226,25 +229,13 @@ async function run(): Promise<void> {
     ...rawOpts,
     persistencyDirProvided,
   };
-  let { flags: hydratedFlags, metadataFound } = await applyMetadataDefaults(flags);
+  let { flags: hydratedFlags } = await applyMetadataDefaults(flags);
 
-  if (!metadataFound && !hydratedFlags.nonInteractive) {
-    const chosenDir = await promptForPersistencyDir(
-      hydratedFlags.persistencyDir ?? DEFAULT_PERSISTENCY_DIR,
-    );
-    ({ flags: hydratedFlags, metadataFound } = await applyMetadataDefaults({
-      ...hydratedFlags,
-      persistencyDir: chosenDir,
-      persistencyDirProvided: true,
-    }));
+  if (overrideProjectPath) {
+    hydratedFlags.projectPath = overrideProjectPath;
   }
 
-  const options = await promptForMissingOptions({
-    ...hydratedFlags,
-    assets: hydratedFlags.assets ?? [],
-  });
-
-  options.intakeNotes = options.intakeNotes.trim();
+  const options = await resolveOptions(hydratedFlags);
 
   const projectPath = overrideProjectPath
     ? path.resolve(overrideProjectPath)
@@ -270,51 +261,7 @@ async function run(): Promise<void> {
     ? Math.max(dayjs().diff(dayjs(previousMetadata.updatedAt), "day"), 0)
     : 0;
 
-  const aiCmd = await ensureAgentCli(
-    options.agent,
-    options.installMethod,
-    options.aiCmd,
-  );
-  await ensureAgentAuth(options.agent, aiCmd);
-
-  const persistencyExists = await pathExists(persistencyPath);
-  if (!persistencyExists) {
-    console.error(
-      chalk.red(
-        `No persistency layer found at ${persistencyPath}. Please create an initial layer manually before running this migration tool.`,
-      ),
-    );
-    process.exit(EXIT_CODES.INVALID_ARGS);
-  }
-
-  if (options.nonInteractive && !options.yes) {
-    console.error(
-      chalk.red(
-        "Cannot continue without confirmation. Re-run with --yes or disable --non-interactive.",
-      ),
-    );
-    process.exit(EXIT_CODES.INVALID_ARGS);
-  }
-
-  if (!options.yes) {
-    const confirmation = await import("inquirer").then((mod) =>
-      mod.default.prompt([
-        {
-          name: "proceed",
-          type: "confirm",
-          message:
-            `Existing persistency layer detected at ${persistencyPath}. Launch ${options.agent} to migrate it using the updated knowledge base rules?`,
-          default: true,
-        },
-      ]),
-    );
-    if (!confirmation.proceed) {
-      console.log(
-        chalk.yellow("Migration aborted by user. Persistency layer unchanged."),
-      );
-      process.exit(EXIT_CODES.GENERIC_FAILURE);
-    }
-  }
+  const aiCmd = options.aiCmd.length ? options.aiCmd : options.agent;
 
   const layoutSnapshot = await analyzePersistencyLayout(persistencyPath);
 
@@ -378,14 +325,12 @@ async function run(): Promise<void> {
     options.force,
   );
 
-  if (options.writeConfig || options.yes) {
-    await writeConfigEnv(options, persistencyPath, options.force, aiCmd);
-    await writeAntiDriftScripts(
-      projectPath,
-      path.relative(projectPath, persistencyPath),
-      options.force,
-    );
-  }
+  await writeConfigEnv(options, persistencyPath, options.force, aiCmd);
+  await writeAntiDriftScripts(
+    projectPath,
+    path.relative(projectPath, persistencyPath),
+    options.force,
+  );
 
   await writeStartScript(persistencyPath, aiCmd, options.force);
   await writeUpsertScript(persistencyPath, aiCmd, options.force);
@@ -431,7 +376,6 @@ async function run(): Promise<void> {
     prodBranch: truthBranch,
     snapshotRef: truthCommit,
     updatedAt: dayjs().toISOString(),
-    installMethod: options.installMethod,
     assets: copiedAssets.map((assetPath) => path.relative(projectPath, assetPath)),
     legacySources: legacySources.length > 1
       ? legacySources.slice(1)

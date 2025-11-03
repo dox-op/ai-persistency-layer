@@ -31,7 +31,6 @@ export interface PersistencyMetadata {
   prodBranch: string;
   snapshotRef: string;
   updatedAt: string;
-  installMethod?: string;
   assets?: string[];
   legacySources?: string[];
   intakeNotes?: string;

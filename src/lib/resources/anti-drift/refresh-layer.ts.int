@@ -6,7 +6,7 @@ const args = process.argv.slice(2);
 async function main() {
   const command = "ai-persistency-layer";
   console.log("Refreshing AI persistency layer...");
-  await execa(command, ["--yes", ...args], { stdio: "inherit" });
+  await execa(command, args, { stdio: "inherit" });
 }
 
 main().catch((error) => {

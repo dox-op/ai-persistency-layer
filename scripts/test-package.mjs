@@ -78,13 +78,8 @@ async function ensureCliRuns() {
       "main",
       "--ai-cmd",
       "node",
-      "--install-method",
-      "skip",
       "--intake-notes",
-      "Legacy-CSV-export=./data/users.csv",
-      "--non-interactive",
-      "--yes",
-      "--write-config"
+      "Legacy-CSV-export=./data/users.csv"
     ].join(" ");
 
     await run(command, {
@@ -167,22 +162,17 @@ async function ensureCliRuns() {
       throw new Error("Upsert prompt is missing supplemental notes.");
     }
 
-    const nonInteractiveCommand = [
+    const rerunCommand = [
       "node",
       "./dist/cli.js",
       "--project-path",
       tmpDir,
-      "--non-interactive",
-      "--yes",
       "--ai-cmd",
       "node",
-      "--install-method",
-      "skip",
-      "--write-config",
       "--force"
     ].join(" ");
 
-    await run(nonInteractiveCommand, {
+    await run(rerunCommand, {
       cwd: process.cwd(),
       env: {
         ...process.env,

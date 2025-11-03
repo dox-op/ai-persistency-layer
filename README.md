@@ -1,32 +1,29 @@
 # @dox-op/ai-persistency-layer
 
-Refresh or reseed an AI Persistency Layer inside an existing Git repository.  
-The tool mirrors the behaviour of the original `init-persistency-layer.sh` script while upgrading it to an idempotent TypeScript/ESM CLI that now requires an existing layer so migrations never start from a blank slate.
+## TL;DR for downstream devs
+- Run `npx @dox-op/ai-persistency-layer --agent <codex|claude|gemini>` (or the installed binary) inside a Git repo; the command seeds or refreshes the target persistency directory even if it does not exist yet.
+- The CLI gathers project metadata from Git, regenerates the knowledge-base scaffold and `persistency.config.env`, and writes fresh `ai-start.sh`, `ai-upsert.sh`, and `persistency.upsert.prompt.mdc` files.
+- Once it finishes, run `ai/ai-start.sh` for an interactive session or `ai/ai-upsert.sh` for a one-shot alignment; both stream the curated prompt and knowledge-base snapshot to your chosen agent.
+- Agent installation and API keys remain your responsibility—the tool never checks or stores credentials and assumes the agent binary name matches the selected `--agent` value.
 
-## Features
+Refresh or seed an AI Persistency Layer inside any Git repository.  
+The tool mirrors the behaviour of the original `init-persistency-layer.sh` script while upgrading it to an idempotent TypeScript/ESM CLI that can create the layer from scratch or reshape an existing one without wiping its history.
 
-- Validates execution inside a Git repository (exit code `2` otherwise).
-- Interactive prompts via Inquirer or fully headless operation with `--non-interactive`.
-- Remembers previous runs by reading `.persistency-meta.json` and `.persistency-path`, reusing stored defaults without extra prompts.
-- Detects, installs, or updates Codex, Claude, or Gemini CLIs using `execa`.
-- Authenticates by checking standard environment variables and credential files (see “Authentication Requirements”).
-- Generates knowledge-base scaffolding (bootstrap + per-domain foundations and indexes) from `src/lib/knowledge-base`.
-- Always regenerates `ai-start.sh` and `ai-upsert.sh`, and—when run with `--write-config` or `--yes`—also writes `persistency.config.env` plus the anti-drift scripts sourced from `src/lib/resources`.
-- Preserves the existing `ai/` layer and emits `ai-meta/migration-brief.mdc` so an agent can reconcile legacy and new rules.
-- Generates a versioned upsert prompt (`persistency.upsert.prompt.mdc`) outside the layer so the chosen agent can apply changes consistently.
-- Records the chosen truth branch commit and freshness metrics.
+## Feature
+
+Take any Git project—brownfield or greenfield—and leave it with a curated, agent-ready AI persistency layer. The CLI infers defaults from Git metadata (plus any prior `.persistency-meta.json`), rebuilds the knowledge-base scaffold, and regenerates `ai-start.sh`, `ai-upsert.sh`, `persistency.config.env`, and the upsert prompt so agents can ingest the latest context. First-time runs create the entire structure; subsequent runs refresh it in-place (optionally creating a timestamped backup) without prompting for extra input. Authentication and agent configuration stay entirely in your hands—the tool never inspects binaries or credentials.
 
 ## Installation
 
 - Run without installing:  
   ```bash
-  npx @dox-op/ai-persistency-layer --agent claude --write-config --yes
+  npx @dox-op/ai-persistency-layer --agent claude
   ```
 - Install globally (optional):  
   ```bash
   npm install -g @dox-op/ai-persistency-layer
   # then
-  ai-persistency-layer --agent claude --write-config --yes
+  ai-persistency-layer --agent claude
   ```
 
 ## Usage
@@ -43,14 +40,10 @@ ai-persistency-layer [options]
 | `--prev-layer <path>` | Import a previous persistency layer. |
 | `--prod-branch <branch>` | Truth branch (defaults to current). |
 | `--agent <codex|claude|gemini>` | Target AI agent CLI. |
-| `--ai-cmd <cmd>` | Explicit agent command/binary (override PATH auto-detection). |
-| `--install-method <pnpm|npm|brew|pipx|skip>` | Preferred installation strategy. |
+| `--ai-cmd <cmd>` | Explicit agent command/binary (overrides the default value inferred from `--agent`). |
 | `--default-model <string>` | Default model identifier. |
-| `--write-config` | Write `persistency.config.env` and anti-drift scripts. |
 | `--asset <path>` | Extra asset to copy into the layer (repeatable). |
 | `--intake-notes <text>` | Supplemental notes or document references injected into the migration brief. |
-| `--non-interactive` | Fail instead of prompting for missing inputs. |
-| `--yes` | Auto-confirm prompts (implies `--write-config`). |
 | `--force` | Overwrite existing files. |
 | `--keep-backup` | Retain the previous layer in `ai-backup/` before regenerating. |
 | `--log-history` | Append refresh details to `_bootstrap.log` (default: off). |
@@ -58,11 +51,10 @@ ai-persistency-layer [options]
 
 ### Persistency directory discovery
 
-The CLI looks for metadata in the `ai/` folder by default. If the
-`.persistency-meta.json` file is not present there, you will be prompted once to
-confirm where the existing layer lives. The selected directory is then recorded
-in the project root via `.persistency-path`, allowing subsequent runs to reuse
-the configured location without prompting again.
+The CLI looks for metadata in the `ai/` folder by default. If
+`.persistency-meta.json` is missing, it checks `.persistency-path`; if that is
+absent too, it falls back to the default `ai/` directory. Whatever directory is
+used gets recorded in `.persistency-path` so future runs remain hands-free.
 
 ## Exit Codes
 
@@ -71,50 +63,16 @@ the configured location without prompting again.
 | `0` | Success |
 | `1` | Generic failure |
 | `2` | Not a git repository |
-| `3` | Agent CLI missing |
-| `4` | Authentication missing |
+| `3` | Reserved for agent CLI checks |
+| `4` | Reserved for authentication checks |
 | `5` | Invalid arguments |
-
-## Authentication Requirements
-
-The CLI validates that the selected AI agent already has credentials configured.  
-Set the appropriate environment variable (or equivalent config file) before running:
-
-| Agent | Environment variables checked | Alternative credentials |
-| ----- | ----------------------------- | ----------------------- |
-| Codex | `CODEX_API_KEY`, `OPENAI_API_KEY` | `~/.config/codex/credentials`, `~/.codex/credentials` |
-| Claude | `ANTHROPIC_API_KEY` | `~/.config/claude/credentials`, `~/.claude/credentials` |
-| Gemini | `GOOGLE_API_KEY`, `GEMINI_API_KEY` | `~/.config/gemini/credentials`, `~/.gemini/credentials` |
-
-If none of the variables exist and no credential file is found, the CLI checks whether the agent binary responds (for example, after running `codex login`). If it does, the tool proceeds with a warning; otherwise it exits with code `4` so you can complete the authentication.
-
-## Local Development (contributors only)
-
-```bash
-pnpm install
-pnpm dev        # tsx src/cli.ts
-pnpm build      # tsc
-```
-
-Only run these commands when you are modifying the CLI locally.  
-Before using `pnpm link --global`, run `pnpm build` once so the compiled `dist/` output is present. End users who install from npm do not need to build anything.
-
-## Publishing (maintainers)
-
-1. Install dependencies: `pnpm install`.
-2. Build the distributable: `pnpm run build`.
-3. Run the packaging smoke test: `pnpm run test:package` (ensures templates exist and the compiled CLI works end-to-end).
-4. (Optional) Inspect the tarball with `npm pack`.
-5. Publish: `npm publish --access public`.
-
-Always run the build step before publishing so the `dist/` folder ships with the package.
 
 ## Anti-Drift Automation
 
-When `--write-config` is supplied, the CLI generates:
+Every run emits:
 
 - `scripts/ai/check-stale.ts` – validates freshness targets (7 days / 200 commits).
-- `scripts/ai/refresh-layer.ts` – re-runs the bootstrap with `--yes`.
+- `scripts/ai/refresh-layer.ts` – re-runs the bootstrap, forwarding any extra CLI arguments you pass to the script.
 
 ## Persistency Lifecycle
 
@@ -128,8 +86,8 @@ The CLI does not replace these feedback loops—it supplies the scaffolding that
 
 ## Migration Workflow
 
-- The CLI refuses to run if the target persistency directory is missing (protects greenfield projects).
-- When an existing layer is detected you must confirm the agent-assisted migration; no files are deleted or regenerated blindly.
+- The CLI creates the target persistency directory if it is missing, seeding the canonical structure for greenfield projects.
+- Existing layers are refreshed in-place; pass `--keep-backup` to capture a timestamped snapshot before files are regenerated.
 - A migration brief is written to `ai-meta/migration-brief.mdc`, combining legacy sources, the enforced knowledge base rules (English-only, tri-domain separation, per-domain indexes), and any supplemental notes you supplied via `--intake-notes` or the shell script.
 - Passing `--prev-layer <path>` stages that directory inside `ai-meta/legacy/<timestamp>` and records it as a source to reconcile in the migration brief.
 - The CLI inspects existing directories before writing anything, flags additional folders (referenced vs non-referenced in the legacy bootstrap), and stores the outcome inside both the migration brief and the new `persistency.upsert.prompt.mdc`.
@@ -147,7 +105,6 @@ This tool is not a silver bullet for AI-agent adoption; treat the suggestions be
 
 ## Logging & Metadata
 
-- `_bootstrap.log` (when `--log-history` is used) stores chronological activity.
 - `.persistency-meta.json` tracks last refresh, truth branch commit, and freshness metrics.
 - `.persistency-path` (at the repository root) stores the directory that contains the AI layer for future executions.
 - `ai-meta/migration-brief.mdc` summarises the latest migration instructions for the agent.
@@ -164,10 +121,10 @@ This tool is not a silver bullet for AI-agent adoption; treat the suggestions be
 ## FAQ
 
 **What are the "anti-drift scripts"?**  
-When you run the CLI with `--write-config`, it generates two scripts under `scripts/ai/`:
+Every run regenerates two scripts under `scripts/ai/`:
 - `check-stale.ts` reads `.persistency-meta.json` and exits with a non-zero code if the layer breaches the default freshness SLO (7 days or 200 commits). It is designed for CI or scheduled tasks.
-- `refresh-layer.ts` re-runs the bootstrap (`ai-persistency-layer --yes ...`), allowing you to schedule periodic regenerations or respond to drift alerts.
+- `refresh-layer.ts` re-runs the bootstrap (`ai-persistency-layer ...`), allowing you to schedule periodic regenerations or respond to drift alerts.
 
 **Where do I store the settings that keep the layer idempotent?**  
 The bootstrap creates `persistency.config.env` at the root of the layer. It captures the project name, reference paths, agent command, and the relative paths for the three domains. Extend it with your own variables or orchestration scripts if needed; the CLI regenerates or updates it on every run while keeping the configuration within the layer.
-> If you skip `--ai-cmd`, the CLI searches the current `PATH` for the usual binary names (e.g. `codex`, `claude`, `gemini`). Specify a full path only when the executable lives elsewhere.
+> If you omit `--ai-cmd`, the CLI records the agent name (e.g. `codex`, `claude`, `gemini`) as the command. Edit `persistency.config.env` if your binary uses a different name or path.

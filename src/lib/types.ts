@@ -9,13 +9,9 @@ export interface CliFlags {
   prodBranch?: string;
   agent?: SupportedAgent;
   aiCmd?: string;
-  installMethod?: "pnpm" | "npm" | "brew" | "pipx" | "skip";
   defaultModel?: string;
-  writeConfig: boolean;
   assets: string[];
   intakeNotes?: string;
-  nonInteractive: boolean;
-  yes: boolean;
   force: boolean;
   keepBackup: boolean;
   logHistory: boolean;
