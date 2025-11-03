@@ -2,7 +2,7 @@
 project: {{projectName}}
 agent: {{agent}}
 truth_branch: {{truthBranch}}
-snapshot: {{snapshotPath}}
+truth_commit: {{truthCommit}}
 default_model: {{defaultModel}}
 last_refresh_days: {{daysSinceUpdate}}
 commits_since_truth: {{commitsSinceTruth}}
@@ -25,21 +25,20 @@ This bootstrap describes how to interact with the repository using the selected 
 - Always load this directory when starting an AI session.
 - Keep the tri-domain separation: `functional/`, `technical/`, `ai-meta/`.
 - Store raw artefacts (CSV, Confluence exports, diagrams) under `ai-meta/assets/`.
-- Repository snapshots live in `technical/snapshots/`.
 - Review `ai-meta/legacy-import.mdc` first if it exists (legacy knowledge to migrate).
 
 ## Workflow
 
 1. Use `ai-start.sh` to spawn the agent (`{{agent}}`).
 2. During exploration, document discoveries in the relevant domain directory.
-3. When features are delivered, regenerate the layer to produce a new snapshot.
+3. When features are delivered, regenerate the layer to capture the latest truth branch commit.
 4. Update `persistency.config.env` if agent command or defaults change.
 
 ## Anti-Drift
 
-- SLO: refresh every {{sloDays}} day(s) or {{sloCommits}} commit(s) after the truth branch snapshot.
-- Current freshness: {{daysSinceUpdate}} day(s) elapsed, {{commitsSinceTruth}} commit(s) since snapshot.
-- Deterministic snapshot located at `{{snapshotPath}}`.
+- SLO: refresh every {{sloDays}} day(s) or {{sloCommits}} commit(s) after the captured truth branch commit.
+- Current freshness: {{daysSinceUpdate}} day(s) elapsed, {{commitsSinceTruth}} commit(s) since the tracked commit.
+- Truth branch commit recorded: `{{truthCommit}}`.
 - Freshness metrics are tracked internally (excluded from AI context files).
 - Optional automation scripts available under `scripts/ai`.
 

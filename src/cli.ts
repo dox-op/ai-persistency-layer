@@ -7,7 +7,6 @@ import ora from "ora";
 import dayjs from "dayjs";
 import {
   DEFAULT_PERSISTENCY_DIR,
-  DEFAULT_SNAPSHOT_DIR,
   DEFAULT_LOG_FILE,
   EXIT_CODES,
   SUPPORTED_AGENTS,
@@ -27,8 +26,7 @@ import {
 import {
   ensureGitRepo,
   resolveTruthBranch,
-  captureSnapshot,
-  writeSnapshotFile,
+  getBranchCommit,
   getCommitDistanceFromTruth,
   GitRepoError,
 } from "./lib/git-utils.js";
@@ -300,12 +298,7 @@ async function run(): Promise<void> {
   }
 
   const copiedAssets = await copyAssets(options.assets, persistencyPath);
-  const snapshot = await captureSnapshot(git, truthBranch);
-  const snapshotPath = await writeSnapshotFile(
-    snapshot,
-    persistencyPath,
-    DEFAULT_SNAPSHOT_DIR,
-  );
+  const truthCommit = await getBranchCommit(git, truthBranch);
 
   const commitsSinceTruth = await getCommitDistanceFromTruth(git, truthBranch);
   const metrics = {
@@ -319,7 +312,7 @@ async function run(): Promise<void> {
     persistencyPath,
     metrics,
     truthBranch,
-    path.relative(projectPath, snapshotPath),
+    truthCommit,
     options.force,
   );
 
@@ -345,7 +338,7 @@ async function run(): Promise<void> {
     defaultModel: options.defaultModel,
     persistencyDir: path.relative(projectPath, persistencyPath),
     prodBranch: truthBranch,
-    snapshotRef: snapshot.commit,
+    snapshotRef: truthCommit,
     updatedAt: dayjs().toISOString(),
     installMethod: options.installMethod,
     assets: copiedAssets.map((assetPath) => path.relative(projectPath, assetPath)),
@@ -360,7 +353,7 @@ async function run(): Promise<void> {
   if (options.logHistory) {
     await writeLogEntry(
       persistencyPath,
-      `Refreshed by ai-persistency-layer on ${truthBranch} (commit ${snapshot.commit.slice(0, 7)})`,
+      `Refreshed by ai-persistency-layer on ${truthBranch} (commit ${truthCommit.slice(0, 7)})`,
     );
     if (legacySources.length) {
       await writeLogEntry(
@@ -375,7 +368,7 @@ async function run(): Promise<void> {
   spinner.succeed("AI persistency layer ready.");
 
   console.log(chalk.green(`Persistency directory: ${persistencyPath}`));
-  console.log(chalk.green(`Snapshot stored in: ${snapshotPath}`));
+  console.log(chalk.green(`Truth branch commit: ${truthCommit.slice(0, 7)}`));
 
   if (options.startSession || (!options.nonInteractive && !options.yes)) {
     try {

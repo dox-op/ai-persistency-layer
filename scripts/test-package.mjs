@@ -88,7 +88,6 @@ async function ensureCliRuns() {
       path.join(tmpDir, "custom-ai", "technical", "foundation.mdc"),
       path.join(tmpDir, "custom-ai", "ai-meta", "foundation.mdc"),
       path.join(tmpDir, "custom-ai", "ai-meta", "legacy-import.mdc"),
-      path.join(tmpDir, "custom-ai", "technical", "snapshots"),
       path.join(tmpDir, "custom-ai", "ai-bootstrap.mdc"),
       metadataPath,
       pointerPath
@@ -98,6 +97,11 @@ async function ensureCliRuns() {
       if (!(await fileExists(file))) {
         throw new Error(`Expected file not generated: ${file}`);
       }
+    }
+
+    const snapshotsDir = path.join(tmpDir, "custom-ai", "technical", "snapshots");
+    if (await fileExists(snapshotsDir)) {
+      throw new Error(`Snapshots directory should not be generated: ${snapshotsDir}`);
     }
 
     const pointerContents = (await readFile(pointerPath, "utf8")).trim();
