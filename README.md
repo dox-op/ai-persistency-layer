@@ -11,7 +11,7 @@ The tool mirrors the behaviour of the original `init-persistency-layer.sh` scrip
 - Authenticates by checking standard environment variables and credential files (see “Authentication Requirements”).
 - Generates deterministic `.mdc` domain foundations (functional, technical, AI-meta) and bootstrap content.
 - Creates `ai-start.sh`, `persistency.config.env`, optional `_bootstrap.log`, and anti-drift scripts.
-- Captures a Git snapshot for the chosen truth branch and records freshness metrics.
+- Records the chosen truth branch commit and freshness metrics.
 
 ## Installation
 
@@ -135,7 +135,7 @@ This tool is not a silver bullet for AI-agent adoption; treat the suggestions be
 ## Logging & Metadata
 
 - `_bootstrap.log` (when `--log-history` is used) stores chronological activity.
-- `.persistency-meta.json` tracks last refresh, snapshot commit, and freshness metrics.
+- `.persistency-meta.json` tracks last refresh, truth branch commit, and freshness metrics.
 - `.persistency-path` (at the repository root) stores the directory that contains the AI layer for future executions.
 
 ## Start Script

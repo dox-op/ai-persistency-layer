@@ -7,7 +7,6 @@ import {
   DEFAULT_BOOTSTRAP_FILE,
   DEFAULT_CONFIG_FILE,
   DEFAULT_LOG_FILE,
-  DEFAULT_SNAPSHOT_DIR,
   DEFAULT_START_SCRIPT,
   DEFAULT_ANTI_DRIFT_SLO_DAYS,
   DEFAULT_ANTI_DRIFT_SLO_COMMITS,
@@ -98,7 +97,7 @@ export async function writeBootstrap(
   persistencyPath: string,
   metrics: AntiDriftMetrics,
   truthBranch: string,
-  snapshotPath: string,
+  truthCommit: string,
   force: boolean,
 ): Promise<void> {
   const template = await readTemplate("bootstrap.mdc");
@@ -106,7 +105,7 @@ export async function writeBootstrap(
     .replace(/{{projectName}}/g, options.projectName)
     .replace(/{{agent}}/g, options.agent)
     .replace(/{{truthBranch}}/g, truthBranch)
-    .replace(/{{snapshotPath}}/g, snapshotPath)
+    .replace(/{{truthCommit}}/g, truthCommit)
     .replace(/{{daysSinceUpdate}}/g, String(metrics.daysSinceUpdate))
     .replace(/{{commitsSinceTruth}}/g, String(metrics.commitsSinceTruth))
     .replace(/{{sloDays}}/g, String(DEFAULT_ANTI_DRIFT_SLO_DAYS))
@@ -271,10 +270,6 @@ export async function ensureBaseLayout(persistencyPath: string): Promise<void> {
     }),
     fs.mkdir(
       path.join(persistencyPath, "ai-meta", "assets"),
-      { recursive: true },
-    ),
-    fs.mkdir(
-      path.join(persistencyPath, DEFAULT_SNAPSHOT_DIR),
       { recursive: true },
     ),
   ]);

@@ -11,13 +11,6 @@ export class GitRepoError extends Error {
   }
 }
 
-export interface SnapshotData {
-  branch: string;
-  commit: string;
-  timestamp: string;
-  files: string[];
-}
-
 export interface FreshnessMetrics {
   daysSinceUpdate: number;
   commitsSinceTruth: number;
@@ -65,49 +58,11 @@ export async function getCommitDistanceFromTruth(
   }
 }
 
-export async function captureSnapshot(
+export async function getBranchCommit(
   git: SimpleGit,
   branch: string,
-): Promise<SnapshotData> {
-  const commit = (await git.revparse([branch])).trim();
-  const timestamp = dayjs().toISOString();
-  const tree = await git.raw([
-    "ls-tree",
-    "-r",
-    "--full-tree",
-    "--name-only",
-    branch,
-  ]);
-  const files = tree
-    .split("\n")
-    .map((line) => line.trim())
-    .filter(Boolean)
-    .sort((a, b) => a.localeCompare(b));
-
-  return { branch, commit, timestamp, files };
-}
-
-export async function writeSnapshotFile(
-  snapshot: SnapshotData,
-  persistencyPath: string,
-  snapshotDirName: string,
 ): Promise<string> {
-  const dir = path.join(persistencyPath, snapshotDirName);
-  await fs.mkdir(dir, { recursive: true });
-  const filename = `${snapshot.branch.replace(/\//g, "-")}-${dayjs(snapshot.timestamp).format("YYYYMMDD-HHmmss")}.mdc`;
-  const filePath = path.join(dir, filename);
-  const lines = [
-    `# Snapshot for ${snapshot.branch}`,
-    ``,
-    `- commit: ${snapshot.commit}`,
-    `- captured_at: ${snapshot.timestamp}`,
-    `- files: ${snapshot.files.length}`,
-    ``,
-    `## Files`,
-    ...snapshot.files.map((file) => `- ${file}`),
-  ];
-  await fs.writeFile(filePath, `${lines.join("\n")}\n`, "utf8");
-  return filePath;
+  return (await git.revparse([branch])).trim();
 }
 
 export async function computeFreshnessMetrics(
